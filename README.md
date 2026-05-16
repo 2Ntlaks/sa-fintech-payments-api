@@ -276,15 +276,6 @@ The `local` profile disables database-backed merchant/auth endpoints and exists 
 - No sensitive tokens or passwords in audit logs.
 - Simulated provider references, webhooks, reconciliation records, and settlement batches only.
 
-## Interview Story
+## Author
 
-This project is built milestone by milestone to show backend engineering judgment in a fintech domain. The important story is not just "CRUD for payments"; it is how the system protects financial state through merchant isolation, deterministic money handling, controlled transitions, idempotency, webhook safety, reconciliation visibility, settlement separation, and auditability.
-
-Useful talking points:
-
-- Why `BigDecimal` and `NUMERIC(19,2)` are used for money.
-- Why payment attempts are separate from invoices.
-- Why payment success does not mean settlement.
-- Why reconciliation reports mismatches instead of mutating records.
-- Why database constraints matter for financial safety.
-- How the system could evolve toward a ledger, role-based access, pagination, and production-grade webhook signatures.
+Built by [2Ntlaks](https://github.com/2Ntlaks).
