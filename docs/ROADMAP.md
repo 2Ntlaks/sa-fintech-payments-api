@@ -31,6 +31,10 @@ Expected outputs:
 - Codex workflow guide
 - Interview notes
 - Decision log
+- Spring Boot foundation scaffold
+- Public health endpoint
+- Protected-by-default security baseline
+- Foundation tests that do not require Docker
 
 Fintech concepts:
 

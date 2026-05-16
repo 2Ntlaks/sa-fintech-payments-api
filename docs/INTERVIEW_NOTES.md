@@ -70,6 +70,18 @@ The project uses Codex through `AGENTS.md` and supporting documentation to guide
 
 This demonstrates an AI-assisted engineering workflow where the human acts as product owner, learner, tester, reviewer, and explainer while Codex implements carefully within documented constraints.
 
+## Milestone 1 Foundation
+
+The first implementation milestone establishes a Spring Boot foundation before domain features are added.
+
+It proves:
+
+- The project can compile and run tests through the Maven Wrapper
+- The API has a public health endpoint
+- API routes are protected by default
+- The package structure reflects the planned fintech modules
+- Docker and PostgreSQL can be added later without blocking early foundation tests
+
 ## Example Interview Pitch
 
 I built a simulated South African fintech merchant payments API. It supports ZAR invoices, simulated payment methods like card, EFT, PayShap, and debit order, idempotent payment creation, webhook handling, refunds, fees, merchant balances, manual settlements, reconciliation against mock provider reports, and audit logs.

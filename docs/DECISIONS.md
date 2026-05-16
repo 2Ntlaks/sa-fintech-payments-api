@@ -196,3 +196,44 @@ Tradeoffs:
 
 - Some mismatches require explicit follow-up instead of automatic correction.
 - The system better demonstrates real fintech operational controls and auditability.
+
+## 2026-05-16: Use Maven Wrapper For Builds
+
+Decision:
+
+Use the Maven Wrapper so the project can build even when Maven is not installed globally.
+
+Reason:
+
+The local machine has Java available but does not have `mvn` on the PATH. The wrapper makes setup simpler for the learner and for recruiters cloning the project.
+
+Alternatives considered:
+
+- Requiring global Maven installation
+- Deferring build setup until later
+
+Tradeoffs:
+
+- The wrapper adds a few generated files to the repository.
+- The project becomes easier to run consistently.
+
+## 2026-05-16: Add A Temporary Local Profile Without Database Autoconfiguration
+
+Decision:
+
+Add a `local` Spring profile that disables database, JPA, and Flyway autoconfiguration until Docker/PostgreSQL setup is added.
+
+Reason:
+
+The project includes persistence dependencies from the start, but Docker will be handled later. The local profile lets the health endpoint and foundation app run before database infrastructure exists.
+
+Alternatives considered:
+
+- Removing database dependencies until milestone 2
+- Requiring PostgreSQL immediately
+- Letting the app fail until Docker is added
+
+Tradeoffs:
+
+- The local profile is temporary and should not be mistaken for the real persistence setup.
+- It keeps the early learning loop smooth while preserving the planned production stack.
