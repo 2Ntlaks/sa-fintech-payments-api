@@ -77,7 +77,7 @@ Invoice creation, invoice status lifecycle, invoice cancellation, and invoice pa
 
 Payment attempts, simulated payment methods, provider references, idempotency support, and controlled payment status transitions.
 
-The first payment implementation supports simulated payment attempts and controlled status updates. Idempotency-key storage is intentionally deferred to the webhook/idempotency milestone, but the schema already prevents the most dangerous version-one duplicate: two successful full payments for one invoice.
+The payment implementation supports simulated payment attempts, controlled status updates, and idempotency-key storage for payment creation retries. The schema also prevents the most dangerous version-one duplicate: two successful full payments for one invoice.
 
 ### Webhook
 
@@ -87,17 +87,25 @@ Simulated provider event receiving, storage, validation, duplicate handling, and
 
 Refund requests, refund status lifecycle, refund limits, and links to original payments.
 
+Version one processes merchant-initiated simulated refunds synchronously into `SUCCEEDED` status after validation. The refund record is still stored separately so later milestones can add asynchronous provider behavior if needed.
+
 ### Balance
 
 Simple merchant balance tracking for pending, available, settled, refunded, fee, gross, and net amounts. The first version should remain simple but leave room for a future ledger-style model.
+
+The current balance implementation stores one `merchant_balances` row per merchant. Successful payments add gross, fee, and net amounts; successful refunds increase refunded totals and reduce available amount. This is intentionally a summary model, not a double-entry ledger.
 
 ### Settlement
 
 Manual settlement batch creation, eligible payment selection, gross and net settlement totals, and settlement status tracking.
 
+The current settlement implementation creates merchant-scoped settlement batches from eligible payments. Settlement items preserve gross, fee, refund, and net amounts per payment, and a unique payment-item index prevents double settlement.
+
 ### Reconciliation
 
 Generated mock provider reports, internal-versus-external comparison, and reconciliation exceptions.
+
+The current reconciliation implementation accepts mock provider records through the API, compares them against merchant-owned internal payments by provider reference, and stores report items for matches and exceptions. It never rewrites payment state during reconciliation.
 
 ### Audit
 
@@ -123,11 +131,17 @@ Database design should prioritize:
 
 Merchant-owned tables should either contain `merchant_id` directly or have a mandatory relationship to a parent record that contains `merchant_id`. Code should not depend on the client to tell the truth about ownership.
 
-The current schema creates `merchants`, `merchant_users`, `customers`, `invoices`, `payment_attempts`, and `audit_logs`. It uses UUID primary keys and explicit merchant ownership so the database can grow toward refunds, settlements, reconciliation, and richer audit logs without changing the tenant-isolation model.
+The current schema creates `merchants`, `merchant_users`, `customers`, `invoices`, `payment_attempts`, `idempotency_records`, `webhook_events`, `refunds`, and `audit_logs`. It uses UUID primary keys and explicit merchant ownership so the database can grow toward settlements, reconciliation, and richer audit logs without changing the tenant-isolation model.
 
 Customer and invoice tables are merchant-scoped. Invoices reference both `merchant_id` and `customer_id`, and service methods load customers through `customer_id` plus the authenticated merchant ID before an invoice can be created.
 
 Payment attempts are also merchant-scoped. They reference invoices through invoice ID plus merchant ID so a payment cannot be linked to another merchant's invoice. A partial unique index prevents more than one `SUCCEEDED` payment attempt for the same invoice.
+
+The successful-payment uniqueness rule treats `SUCCEEDED`, `PARTIALLY_REFUNDED`, and `REFUNDED` as the same paid outcome for invoice duplicate-prevention purposes.
+
+Idempotency records are scoped by merchant, operation, and idempotency key. Webhook events are unique by simulated provider event ID and keep the raw payload plus processing decision so duplicate and out-of-order events remain explainable.
+
+Refunds are merchant-scoped and reference payment attempts through payment ID plus merchant ID. This keeps refund creation tied to the authenticated merchant and prevents linking a refund to another merchant's payment at the database layer.
 
 ## Authentication Approach
 
@@ -186,6 +200,10 @@ Idempotency records should store:
 
 If the same key is reused with a different request fingerprint, the request should be rejected and audited.
 
+Current behavior applies this rule to payment creation through the `Idempotency-Key` header. The request fingerprint includes the invoice ID and simulated payment method, because the payment amount is copied from the invoice rather than accepted from the client.
+
+Simulated provider webhooks use `X-Simulated-Webhook-Secret` and provider event IDs for deduplication. Events are stored with their processing outcome. Duplicate event IDs return `IGNORED_DUPLICATE`, and events that would move a payment backward return `IGNORED_OUT_OF_ORDER`.
+
 ## Auditability
 
 Audit logging is a core architecture concern, not an afterthought.
@@ -205,7 +223,7 @@ Audit records should include:
 
 Audit logs should be append-only in normal application behavior. They should help explain important financial and security events without storing sensitive secrets.
 
-Milestone 4 adds a minimal `audit_logs` table and service for payment creation and status changes. Milestone 10 will harden and expand audit querying, coverage, and documentation.
+Milestone 4 added the first `audit_logs` table and service for payment creation and status changes. Milestone 10 adds merchant-scoped audit querying so the project can show the persisted trail for financial and security-relevant actions.
 
 ## Settlement Architecture
 
@@ -246,7 +264,9 @@ Every milestone should include tests before moving forward.
 
 ## API Documentation
 
-Use OpenAPI / Swagger to document endpoints.
+Use springdoc OpenAPI / Swagger UI to document endpoints.
+
+The interactive Swagger UI is exposed at `/swagger-ui.html`, and the OpenAPI JSON is exposed at `/v3/api-docs`. Documentation endpoints are public so a recruiter or learner can inspect the API shape locally, while business endpoints remain protected by JWT unless specifically configured as public.
 
 API documentation should include practical request and response examples, especially for payment, webhook, refund, settlement, and reconciliation workflows.
 

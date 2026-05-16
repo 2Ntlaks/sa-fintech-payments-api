@@ -37,6 +37,14 @@ class DatabaseMigrationTest {
                 "customers",
                 "invoices",
                 "payment_attempts",
+                "idempotency_records",
+                "webhook_events",
+                "refunds",
+                "merchant_balances",
+                "settlement_batches",
+                "settlement_batch_items",
+                "reconciliation_reports",
+                "reconciliation_report_items",
                 "audit_logs");
     }
 
@@ -155,6 +163,9 @@ class DatabaseMigrationTest {
                 "merchant_id",
                 "invoice_id",
                 "amount",
+                "gross_amount",
+                "fee_amount",
+                "net_amount",
                 "currency",
                 "payment_method",
                 "status",
@@ -164,6 +175,264 @@ class DatabaseMigrationTest {
                 "uk_payment_attempts_invoice_success",
                 "idx_payment_attempts_merchant_id",
                 "idx_payment_attempts_merchant_status");
-        assertThat(paymentConstraints).contains("fk_payment_attempts_invoice_merchant");
+        assertThat(paymentConstraints).contains(
+                "fk_payment_attempts_invoice_merchant",
+                "chk_payment_attempts_gross_amount_positive",
+                "chk_payment_attempts_fee_amount_non_negative",
+                "chk_payment_attempts_net_amount");
+    }
+
+    @Test
+    void idempotencyAndWebhookTablesShouldBackRetrySafety() {
+        List<String> idempotencyIndexes = jdbcTemplate.queryForList(
+                """
+                SELECT indexname
+                FROM pg_indexes
+                WHERE schemaname = 'public'
+                  AND tablename = 'idempotency_records'
+                """,
+                String.class);
+
+        List<String> webhookIndexes = jdbcTemplate.queryForList(
+                """
+                SELECT indexname
+                FROM pg_indexes
+                WHERE schemaname = 'public'
+                  AND tablename = 'webhook_events'
+                """,
+                String.class);
+
+        List<String> webhookColumns = jdbcTemplate.queryForList(
+                """
+                SELECT column_name
+                FROM information_schema.columns
+                WHERE table_schema = 'public'
+                  AND table_name = 'webhook_events'
+                """,
+                String.class);
+
+        assertThat(idempotencyIndexes).contains(
+                "uk_idempotency_records_scope_key",
+                "idx_idempotency_records_merchant_operation");
+        assertThat(webhookIndexes).contains(
+                "uk_webhook_events_provider_event_id",
+                "idx_webhook_events_provider_reference",
+                "idx_webhook_events_target_payment_id");
+        assertThat(webhookColumns).contains(
+                "provider_event_id",
+                "processing_status",
+                "raw_payload",
+                "requested_payment_status");
+    }
+
+    @Test
+    void refundsShouldBePaymentLinkedMerchantScopedAndZarOnly() {
+        List<String> refundColumns = jdbcTemplate.queryForList(
+                """
+                SELECT column_name
+                FROM information_schema.columns
+                WHERE table_schema = 'public'
+                  AND table_name = 'refunds'
+                """,
+                String.class);
+
+        List<String> refundIndexes = jdbcTemplate.queryForList(
+                """
+                SELECT indexname
+                FROM pg_indexes
+                WHERE schemaname = 'public'
+                  AND tablename = 'refunds'
+                """,
+                String.class);
+
+        List<String> refundConstraints = jdbcTemplate.queryForList(
+                """
+                SELECT constraint_name
+                FROM information_schema.table_constraints
+                WHERE table_schema = 'public'
+                  AND table_name = 'refunds'
+                """,
+                String.class);
+
+        assertThat(refundColumns).contains(
+                "merchant_id",
+                "payment_attempt_id",
+                "amount",
+                "currency",
+                "status",
+                "provider_reference");
+        assertThat(refundIndexes).contains(
+                "uk_refunds_provider_reference",
+                "idx_refunds_merchant_id",
+                "idx_refunds_payment_attempt_id",
+                "idx_refunds_merchant_status");
+        assertThat(refundConstraints).contains(
+                "fk_refunds_payment_merchant",
+                "chk_refunds_amount_positive",
+                "chk_refunds_currency",
+                "chk_refunds_status");
+    }
+
+    @Test
+    void merchantBalancesShouldStoreMerchantScopedFeeAndRefundTotals() {
+        List<String> balanceColumns = jdbcTemplate.queryForList(
+                """
+                SELECT column_name
+                FROM information_schema.columns
+                WHERE table_schema = 'public'
+                  AND table_name = 'merchant_balances'
+                """,
+                String.class);
+
+        List<String> balanceConstraints = jdbcTemplate.queryForList(
+                """
+                SELECT constraint_name
+                FROM information_schema.table_constraints
+                WHERE table_schema = 'public'
+                  AND table_name = 'merchant_balances'
+                """,
+                String.class);
+
+        assertThat(balanceColumns).contains(
+                "merchant_id",
+                "currency",
+                "gross_amount",
+                "fee_amount",
+                "refunded_amount",
+                "available_amount",
+                "settled_amount");
+        assertThat(balanceConstraints).contains(
+                "merchant_balances_pkey",
+                "chk_merchant_balances_currency",
+                "chk_merchant_balances_gross_non_negative",
+                "chk_merchant_balances_fee_non_negative",
+                "chk_merchant_balances_refunded_non_negative",
+                "chk_merchant_balances_settled_non_negative");
+    }
+
+    @Test
+    void settlementTablesShouldPreserveBatchTotalsAndPreventDoubleSettlement() {
+        List<String> batchColumns = jdbcTemplate.queryForList(
+                """
+                SELECT column_name
+                FROM information_schema.columns
+                WHERE table_schema = 'public'
+                  AND table_name = 'settlement_batches'
+                """,
+                String.class);
+
+        List<String> itemColumns = jdbcTemplate.queryForList(
+                """
+                SELECT column_name
+                FROM information_schema.columns
+                WHERE table_schema = 'public'
+                  AND table_name = 'settlement_batch_items'
+                """,
+                String.class);
+
+        List<String> itemIndexes = jdbcTemplate.queryForList(
+                """
+                SELECT indexname
+                FROM pg_indexes
+                WHERE schemaname = 'public'
+                  AND tablename = 'settlement_batch_items'
+                """,
+                String.class);
+
+        List<String> itemConstraints = jdbcTemplate.queryForList(
+                """
+                SELECT constraint_name
+                FROM information_schema.table_constraints
+                WHERE table_schema = 'public'
+                  AND table_name = 'settlement_batch_items'
+                """,
+                String.class);
+
+        assertThat(batchColumns).contains(
+                "merchant_id",
+                "currency",
+                "status",
+                "gross_amount",
+                "fee_amount",
+                "refund_amount",
+                "net_amount");
+        assertThat(itemColumns).contains(
+                "settlement_batch_id",
+                "merchant_id",
+                "payment_attempt_id",
+                "gross_amount",
+                "fee_amount",
+                "refund_amount",
+                "net_amount");
+        assertThat(itemIndexes).contains(
+                "uk_settlement_batch_items_payment_attempt",
+                "idx_settlement_batch_items_batch_id",
+                "idx_settlement_batch_items_merchant_id");
+        assertThat(itemConstraints).contains(
+                "fk_settlement_items_payment_merchant",
+                "chk_settlement_items_net");
+    }
+
+    @Test
+    void reconciliationTablesShouldStoreReportsAndMismatchItems() {
+        List<String> reportColumns = jdbcTemplate.queryForList(
+                """
+                SELECT column_name
+                FROM information_schema.columns
+                WHERE table_schema = 'public'
+                  AND table_name = 'reconciliation_reports'
+                """,
+                String.class);
+
+        List<String> itemColumns = jdbcTemplate.queryForList(
+                """
+                SELECT column_name
+                FROM information_schema.columns
+                WHERE table_schema = 'public'
+                  AND table_name = 'reconciliation_report_items'
+                """,
+                String.class);
+
+        List<String> itemIndexes = jdbcTemplate.queryForList(
+                """
+                SELECT indexname
+                FROM pg_indexes
+                WHERE schemaname = 'public'
+                  AND tablename = 'reconciliation_report_items'
+                """,
+                String.class);
+
+        List<String> itemConstraints = jdbcTemplate.queryForList(
+                """
+                SELECT constraint_name
+                FROM information_schema.table_constraints
+                WHERE table_schema = 'public'
+                  AND table_name = 'reconciliation_report_items'
+                """,
+                String.class);
+
+        assertThat(reportColumns).contains(
+                "merchant_id",
+                "status",
+                "total_records",
+                "matched_count",
+                "exception_count");
+        assertThat(itemColumns).contains(
+                "reconciliation_report_id",
+                "merchant_id",
+                "provider_reference",
+                "internal_payment_attempt_id",
+                "result_type",
+                "internal_amount",
+                "external_amount",
+                "internal_status",
+                "external_status");
+        assertThat(itemIndexes).contains(
+                "idx_reconciliation_report_items_report_id",
+                "idx_reconciliation_report_items_merchant_result",
+                "idx_reconciliation_report_items_provider_reference");
+        assertThat(itemConstraints).contains(
+                "fk_reconciliation_items_payment_merchant",
+                "chk_reconciliation_report_items_result_type");
     }
 }

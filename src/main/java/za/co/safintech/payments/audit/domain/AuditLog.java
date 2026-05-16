@@ -61,4 +61,44 @@ public class AuditLog {
     void prePersist() {
         createdAt = Instant.now();
     }
+
+    public UUID id() {
+        return id;
+    }
+
+    public UUID merchantId() {
+        return merchantId;
+    }
+
+    public String actorType() {
+        return actorType;
+    }
+
+    public UUID actorId() {
+        return actorId;
+    }
+
+    public String action() {
+        return action;
+    }
+
+    public String targetType() {
+        return targetType;
+    }
+
+    public UUID targetId() {
+        return targetId;
+    }
+
+    public String previousState() {
+        return previousState;
+    }
+
+    public String newState() {
+        return newState;
+    }
+
+    public Instant createdAt() {
+        return createdAt;
+    }
 }

@@ -22,8 +22,13 @@ public class SecurityConfig {
                                 "/api/v1/health",
                                 "/actuator/health",
                                 "/actuator/health/**",
+                                "/v3/api-docs",
+                                "/v3/api-docs/**",
+                                "/swagger-ui.html",
+                                "/swagger-ui/**",
                                 "/api/v1/auth/register",
-                                "/api/v1/auth/login").permitAll()
+                                "/api/v1/auth/login",
+                                "/api/v1/webhooks/simulated/**").permitAll()
                         .anyRequest().authenticated())
                 .httpBasic(AbstractHttpConfigurer::disable)
                 .formLogin(AbstractHttpConfigurer::disable)

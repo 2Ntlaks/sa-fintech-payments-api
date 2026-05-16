@@ -16,10 +16,13 @@ public final class PaymentStatusTransitions {
                 EnumSet.of(PaymentStatus.PROCESSING, PaymentStatus.SUCCEEDED, PaymentStatus.FAILED, PaymentStatus.CANCELLED, PaymentStatus.EXPIRED));
         ALLOWED_TRANSITIONS.put(PaymentStatus.PROCESSING,
                 EnumSet.of(PaymentStatus.SUCCEEDED, PaymentStatus.FAILED, PaymentStatus.EXPIRED));
-        ALLOWED_TRANSITIONS.put(PaymentStatus.SUCCEEDED, EnumSet.noneOf(PaymentStatus.class));
+        ALLOWED_TRANSITIONS.put(PaymentStatus.SUCCEEDED,
+                EnumSet.of(PaymentStatus.PARTIALLY_REFUNDED, PaymentStatus.REFUNDED));
         ALLOWED_TRANSITIONS.put(PaymentStatus.FAILED, EnumSet.noneOf(PaymentStatus.class));
         ALLOWED_TRANSITIONS.put(PaymentStatus.CANCELLED, EnumSet.noneOf(PaymentStatus.class));
         ALLOWED_TRANSITIONS.put(PaymentStatus.EXPIRED, EnumSet.noneOf(PaymentStatus.class));
+        ALLOWED_TRANSITIONS.put(PaymentStatus.PARTIALLY_REFUNDED, EnumSet.of(PaymentStatus.REFUNDED));
+        ALLOWED_TRANSITIONS.put(PaymentStatus.REFUNDED, EnumSet.noneOf(PaymentStatus.class));
     }
 
     private PaymentStatusTransitions() {

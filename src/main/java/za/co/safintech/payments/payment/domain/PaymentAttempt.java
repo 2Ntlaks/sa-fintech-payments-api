@@ -44,6 +44,15 @@ public class PaymentAttempt {
     @Column(nullable = false, precision = 19, scale = 2)
     private BigDecimal amount;
 
+    @Column(nullable = false, precision = 19, scale = 2)
+    private BigDecimal grossAmount;
+
+    @Column(nullable = false, precision = 19, scale = 2)
+    private BigDecimal feeAmount;
+
+    @Column(nullable = false, precision = 19, scale = 2)
+    private BigDecimal netAmount;
+
     @Column(nullable = false, length = 3)
     private String currency;
 
@@ -73,6 +82,9 @@ public class PaymentAttempt {
         this.providerReference = providerReference;
         this.paymentMethod = paymentMethod;
         this.amount = invoice.amount().setScale(2, RoundingMode.UNNECESSARY);
+        this.grossAmount = amount;
+        this.feeAmount = BigDecimal.ZERO.setScale(2, RoundingMode.UNNECESSARY);
+        this.netAmount = amount;
         this.currency = invoice.currency();
         this.status = PaymentStatus.CREATED;
         this.statusChangedAt = Instant.now();
@@ -99,6 +111,19 @@ public class PaymentAttempt {
         statusChangedAt = Instant.now();
     }
 
+    public void applySuccessfulRefundTotal(BigDecimal successfulRefundTotal) {
+        BigDecimal normalizedTotal = successfulRefundTotal.setScale(2, RoundingMode.UNNECESSARY);
+        PaymentStatus nextStatus = normalizedTotal.compareTo(amount) == 0
+                ? PaymentStatus.REFUNDED
+                : PaymentStatus.PARTIALLY_REFUNDED;
+        transitionTo(nextStatus, null);
+    }
+
+    public void applySuccessfulFee(BigDecimal feeAmount) {
+        this.feeAmount = feeAmount.setScale(2, RoundingMode.UNNECESSARY);
+        this.netAmount = grossAmount.subtract(this.feeAmount).setScale(2, RoundingMode.UNNECESSARY);
+    }
+
     public UUID id() {
         return id;
     }
@@ -121,6 +146,18 @@ public class PaymentAttempt {
 
     public BigDecimal amount() {
         return amount;
+    }
+
+    public BigDecimal grossAmount() {
+        return grossAmount;
+    }
+
+    public BigDecimal feeAmount() {
+        return feeAmount;
+    }
+
+    public BigDecimal netAmount() {
+        return netAmount;
     }
 
     public String currency() {

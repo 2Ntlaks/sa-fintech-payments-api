@@ -443,3 +443,192 @@ Tradeoffs:
 
 - This is specific to the full-payment version-one model.
 - It provides a database-backed financial safety guarantee before the full idempotency milestone.
+
+## 2026-05-16: Store Payment Creation Idempotency Records
+
+Decision:
+
+Store idempotency records for payment creation, scoped by merchant, operation, and idempotency key. Store a SHA-256 request hash and the created payment attempt ID.
+
+Reason:
+
+Payment creation may be retried by clients. The same retry should return the original payment attempt, while a key reused with different request details should be rejected because it may hide a dangerous client bug.
+
+Alternatives considered:
+
+- Handling idempotency only in memory
+- Relying only on duplicate payment checks
+- Deferring idempotency until real provider integration
+
+Tradeoffs:
+
+- The first request hash is intentionally small because the client only submits invoice ID and payment method.
+- Future operations such as refunds and settlements will need their own operation-scoped idempotency rules.
+
+## 2026-05-16: Store Simulated Webhook Events Before Processing Decisions
+
+Decision:
+
+Store simulated provider webhook events with provider event ID, raw payload, provider reference, requested status, target payment where available, and processing status.
+
+Reason:
+
+Webhook events may be duplicated, late, or out of order. Persisting each first-seen event and returning explicit decisions makes provider-event handling auditable without blindly trusting payloads.
+
+Alternatives considered:
+
+- Updating payment status directly without storing webhook events
+- Treating every duplicate event as an error
+- Letting webhooks bypass normal payment status transition rules
+
+Tradeoffs:
+
+- The simulated webhook secret is simple and not production-grade signing.
+- The first webhook model focuses on payment status changes; refunds, settlements, and richer signature validation can be added later.
+
+## 2026-05-16: Model Refunds As Separate Payment-Linked Records
+
+Decision:
+
+Create a `refunds` table linked to the original payment attempt and merchant. Successful refunds update payment and invoice refund state instead of deleting or rewriting the original payment.
+
+Reason:
+
+Refunds are financial events that must remain traceable. The original successful payment still happened, and each refund should explain how much was returned and why.
+
+Alternatives considered:
+
+- Storing only a refunded amount on the payment attempt
+- Cancelling the original payment record
+- Deferring refund state until the balance milestone
+
+Tradeoffs:
+
+- Refunds add another table and lifecycle to test.
+- Later fee, balance, settlement, and reconciliation milestones can reason from explicit refund records instead of inferred edits.
+
+## 2026-05-16: Treat Refunded Payments As Successful For Duplicate-Payment Prevention
+
+Decision:
+
+Keep the one-successful-payment-per-full-invoice rule across `SUCCEEDED`, `PARTIALLY_REFUNDED`, and `REFUNDED` payment statuses.
+
+Reason:
+
+A refund does not mean the original invoice should accept another full successful payment in version one. The invoice was paid, then partly or fully reversed.
+
+Alternatives considered:
+
+- Keeping the unique index limited to `SUCCEEDED`
+- Allowing a fully refunded invoice to be paid again
+- Adding a new invoice reissue workflow immediately
+
+Tradeoffs:
+
+- Recharging a refunded invoice is deferred.
+- The version-one model remains simple and avoids duplicate successful payment outcomes.
+
+## 2026-05-16: Use A Simple Summary Balance Before A Ledger
+
+Decision:
+
+Milestone 7 uses one merchant balance summary row per merchant. Successful payments add gross, fee, and net totals, while successful refunds increase refunded totals and reduce available amount. The simulated platform fee is `2.9% + R1.00`, rounded to two decimals with `HALF_UP`.
+
+Reason:
+
+The project needs fee and balance behavior before settlement batches, but a full ledger would add more accounting complexity than this learning milestone needs.
+
+Alternatives considered:
+
+- Building a double-entry ledger immediately
+- Calculating balances only from payment and refund history at read time
+- Deferring fees until settlement
+
+Tradeoffs:
+
+- The summary row is easier to learn and explain, but it may evolve into ledger entries later.
+- Fees are not automatically reversed on refunds in version one, which keeps the model explicit and testable before more advanced fee policies are introduced.
+
+## 2026-05-16: Create Manual Settlement Batches From Eligible Payments
+
+Decision:
+
+Milestone 8 creates manual merchant-scoped settlement batches from payments in `SUCCEEDED` or `PARTIALLY_REFUNDED` status. Each settlement item preserves gross, fee, refund, and net amounts, and a unique index prevents one payment from being settled twice.
+
+Reason:
+
+A successful payment is not the same as a merchant payout. Settlement batches make payout eligibility and totals explicit before reconciliation is added.
+
+Alternatives considered:
+
+- Automatically settling every successful payment immediately
+- Settling from balance totals without item-level payment records
+- Deferring settlement until after reconciliation
+
+Tradeoffs:
+
+- Manual settlement is simpler than real payout automation.
+- Preserved settlement item totals make later refunds and reconciliation easier to reason about.
+
+## 2026-05-16: Store Reconciliation Exceptions Without Mutating Payments
+
+Decision:
+
+Milestone 9 stores reconciliation reports and report items that compare mock provider records with internal payment attempts by provider reference. Mismatches are recorded and audited, but payment records are not updated by reconciliation.
+
+Reason:
+
+Reconciliation should reveal disagreement between systems. Automatically changing internal financial records to match a provider report can hide operational problems and weaken auditability.
+
+Alternatives considered:
+
+- Automatically updating payment status or amount from provider records
+- Reporting only aggregate mismatch counts
+- Matching by amount and date instead of provider reference
+
+Tradeoffs:
+
+- Operators or later workflows must resolve mismatches explicitly.
+- The report is more useful for interviews because it shows missing internal, missing external, amount mismatch, status mismatch, and duplicate provider-reference cases separately.
+
+## 2026-05-16: Expose Merchant-Scoped Audit Logs
+
+Decision:
+
+Milestone 10 exposes audit logs through a protected merchant-scoped API endpoint.
+
+Reason:
+
+The project already writes audit logs for financial and security-sensitive actions. Making them queryable lets the portfolio demonstrate traceability rather than only claiming it exists.
+
+Alternatives considered:
+
+- Keeping audit logs internal-only
+- Returning audit logs without merchant scoping
+- Storing raw request payloads for richer debugging
+
+Tradeoffs:
+
+- The query API is simple and does not yet include pagination or filtering.
+- Avoiding raw payloads keeps sensitive values out of the audit trail and makes the safety story clearer.
+
+## 2026-05-16: Use springdoc For OpenAPI And Swagger UI
+
+Decision:
+
+Use `springdoc-openapi-starter-webmvc-ui` to expose OpenAPI JSON and Swagger UI for the Spring MVC API.
+
+Reason:
+
+The project is API-only and should be easy to inspect during learning, demos, and interviews. springdoc integrates directly with Spring Boot and can describe JWT bearer authentication in the generated OpenAPI document.
+
+Alternatives considered:
+
+- Hand-writing an OpenAPI YAML file
+- Deferring API documentation until after deployment
+- Exposing only README examples
+
+Tradeoffs:
+
+- The dependency adds another runtime library to keep current.
+- Generated documentation still needs curated examples and descriptions over time.

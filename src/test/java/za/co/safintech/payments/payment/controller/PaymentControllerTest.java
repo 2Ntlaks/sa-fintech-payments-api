@@ -2,6 +2,7 @@ package za.co.safintech.payments.payment.controller;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -49,7 +50,7 @@ class PaymentControllerTest {
         UUID invoiceId = UUID.randomUUID();
         UUID paymentId = UUID.randomUUID();
 
-        when(paymentService.createPaymentAttempt(eq(merchantId), eq(userId), any(CreatePaymentRequest.class)))
+        when(paymentService.createPaymentAttempt(eq(merchantId), eq(userId), any(CreatePaymentRequest.class), isNull()))
                 .thenReturn(paymentResponse(paymentId, merchantId, invoiceId, "CREATED"));
 
         mockMvc.perform(post("/api/v1/payments")
@@ -68,6 +69,32 @@ class PaymentControllerTest {
                 .andExpect(jsonPath("$.merchantId").value(merchantId.toString()))
                 .andExpect(jsonPath("$.invoiceId").value(invoiceId.toString()))
                 .andExpect(jsonPath("$.status").value("CREATED"));
+    }
+
+    @Test
+    void shouldPassIdempotencyKeyWhenCreatingPayment() throws Exception {
+        UUID merchantId = UUID.randomUUID();
+        UUID userId = UUID.randomUUID();
+        UUID invoiceId = UUID.randomUUID();
+        UUID paymentId = UUID.randomUUID();
+
+        when(paymentService.createPaymentAttempt(eq(merchantId), eq(userId), any(CreatePaymentRequest.class), eq("retry-key-1")))
+                .thenReturn(paymentResponse(paymentId, merchantId, invoiceId, "CREATED"));
+
+        mockMvc.perform(post("/api/v1/payments")
+                        .with(jwt().jwt(token -> token
+                                .subject(userId.toString())
+                                .claim("merchant_id", merchantId.toString())))
+                        .header("Idempotency-Key", "retry-key-1")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "invoiceId": "%s",
+                                  "paymentMethod": "CARD_SIMULATED"
+                                }
+                                """.formatted(invoiceId)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.id").value(paymentId.toString()));
     }
 
     @Test
@@ -133,6 +160,9 @@ class PaymentControllerTest {
                 merchantId,
                 invoiceId,
                 new BigDecimal("125.50"),
+                new BigDecimal("125.50"),
+                new BigDecimal("4.64"),
+                new BigDecimal("120.86"),
                 "ZAR",
                 "CARD_SIMULATED",
                 status,

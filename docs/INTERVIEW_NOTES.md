@@ -130,6 +130,97 @@ It proves:
 
 This matters because fintech systems need evidence and control around every state change. The next milestone will add idempotency keys and webhook simulation so retries and provider events can be handled safely.
 
+## Milestone 5 Webhook Simulation And Idempotency
+
+The webhook and idempotency slice introduces retry safety and provider-event safety.
+
+It proves:
+
+- Payment creation can be retried with an idempotency key
+- Idempotency keys are scoped by merchant and operation
+- The same idempotency key with a different request is rejected
+- Simulated provider webhook events are stored
+- Duplicate provider event IDs do not process financial actions twice
+- Late or backward webhook status changes are ignored
+- Webhook decisions create audit records where merchant context is known
+
+This matters because real payment systems receive repeated client requests and repeated or out-of-order provider events. Financial APIs need durable records of both the original action and the decision made during retries.
+
+## Milestone 6 Refunds
+
+The refund slice introduces reversal behavior without pretending that a refund deletes the original payment.
+
+It proves:
+
+- Refunds are separate records linked to original payments
+- Only successful payments with remaining refundable amount can be refunded
+- Multiple partial refunds are capped at the original payment amount
+- Full refunds move payment and invoice state to `REFUNDED`
+- Partial refunds move payment and invoice state to `PARTIALLY_REFUNDED`
+- Refunded payments still count as the successful payment for duplicate-payment prevention
+- Refund actions are audited
+
+This matters because financial systems preserve the original payment and record compensating actions. Refunds must be traceable, bounded by the original amount, and reflected in later balance and settlement calculations.
+
+## Milestone 7 Fees And Merchant Balances
+
+The balance slice introduces basic payment economics.
+
+It proves:
+
+- Successful payments store gross, fee, and net amounts separately
+- Fees are calculated deterministically with documented rounding
+- Merchant balances are updated when payments succeed
+- Refunds reduce available balance and increase refunded totals
+- The model stays simple enough to explain before introducing settlement or a full ledger
+
+This matters because a payment platform needs to explain how much the customer paid, how much the platform kept as fees, how much is available to the merchant, and how refunds change those totals.
+
+## Milestone 8 Manual Settlement Batches
+
+The settlement slice introduces payout-style batching without moving real money.
+
+It proves:
+
+- Settlement is separate from payment success
+- Only eligible merchant-owned payments are included
+- Fully refunded payments are excluded
+- Partial refunds reduce settlement net amount
+- A payment cannot be settled twice
+- Settlement totals are preserved at batch creation time
+
+This matters because fintech systems need to show what funds are ready to pay out, why each payment was included, and how gross, fees, refunds, and net payout amounts were calculated.
+
+## Milestone 9 Reconciliation Using Mock Provider Reports
+
+The reconciliation slice introduces internal-versus-provider comparison.
+
+It proves:
+
+- Matching uses stable provider references
+- Missing internal records are detected
+- Missing external records are detected
+- Amount and status mismatches are detected
+- Duplicate provider references are detected
+- Reconciliation reports issues without mutating payment state
+- Reconciliation exceptions are audited
+
+This matters because fintech systems need evidence that internal records agree with external provider records. Reconciliation is an investigation workflow, not an automatic rewrite of financial history.
+
+## Milestone 10 Audit, Security Hardening, And Portfolio Polish
+
+The final slice makes the project easier to inspect and explain.
+
+It proves:
+
+- Audit logs can be queried by the authenticated merchant
+- Audit records are structured around actions and state changes
+- Sensitive values are not written through the audit service surface
+- Protected endpoints require authentication
+- The README and notes explain the project as a fintech backend portfolio piece
+
+This matters because interviewers should be able to see not only that the workflows work, but also why the project was designed around traceability, merchant isolation, duplicate prevention, and safe simulation.
+
 ## Example Interview Pitch
 
 I built a simulated South African fintech merchant payments API. It supports ZAR invoices, simulated payment methods like card, EFT, PayShap, and debit order, idempotent payment creation, webhook handling, refunds, fees, merchant balances, manual settlements, reconciliation against mock provider reports, and audit logs.

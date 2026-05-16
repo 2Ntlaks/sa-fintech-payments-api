@@ -100,6 +100,16 @@ public class Invoice {
         status = InvoiceStatus.PAID;
     }
 
+    public void applySuccessfulRefundTotal(BigDecimal successfulRefundTotal) {
+        if (status != InvoiceStatus.PAID && status != InvoiceStatus.PARTIALLY_REFUNDED) {
+            throw new IllegalStateException("Only paid invoices can be refunded");
+        }
+        BigDecimal normalizedTotal = successfulRefundTotal.setScale(2, RoundingMode.UNNECESSARY);
+        status = normalizedTotal.compareTo(amount) == 0
+                ? InvoiceStatus.REFUNDED
+                : InvoiceStatus.PARTIALLY_REFUNDED;
+    }
+
     public UUID id() {
         return id;
     }
