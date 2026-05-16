@@ -96,6 +96,10 @@ A payment attempt is a customer's attempt to pay an invoice.
 
 One invoice may have multiple failed payment attempts, but version one should prevent multiple successful full payments for the same invoice.
 
+Version one payment attempts are simulated. They do not connect to real payment providers and they do not move real money. The system generates a simulated provider reference internally.
+
+Payment attempts copy the invoice amount and currency at creation time. The API client does not provide the amount, because the invoice is the trusted source of what the customer owes.
+
 Simulated payment methods:
 
 - `CARD_SIMULATED`
@@ -131,6 +135,15 @@ Suggested version-one transition rules:
 - Terminal states such as `FAILED`, `CANCELLED`, `EXPIRED`, and `REFUNDED` should not move to another state without an explicit documented recovery rule
 
 These rules may evolve, but changes must be documented and tested.
+
+Current version-one payment rules:
+
+- Only issued invoices can receive payment attempts.
+- Creating a payment attempt starts it in `CREATED`.
+- Payment status changes must use the controlled transition policy.
+- Moving a payment to `SUCCEEDED` marks the linked invoice `PAID`.
+- A full-payment invoice may have at most one successful payment.
+- Payment creation and status changes create audit records.
 
 ## Refund
 

@@ -6,7 +6,7 @@ This project is a safe simulation. It must never process real money or connect t
 
 ## Current Status
 
-Milestone 3 is in progress: customers and invoices.
+Milestone 4 is in progress: payment attempts and payment statuses.
 
 Implemented so far:
 
@@ -21,9 +21,13 @@ Implemented so far:
 - Merchant-scoped customer creation, listing, and lookup
 - Merchant-scoped invoice creation, listing, lookup, and cancellation
 - ZAR invoice amounts stored with `BigDecimal` and PostgreSQL `NUMERIC(19,2)`
+- Simulated payment attempts for issued invoices
+- Controlled payment status transitions
+- Invoice marked `PAID` only after a successful payment status
+- Minimal audit log records for payment creation and payment status changes
 - Public health endpoint at `GET /api/v1/health`
 - Basic stateless Spring Security configuration
-- Tests for foundation, authentication, merchant profile, customer, invoice, and database migration behavior
+- Tests for foundation, authentication, merchant profile, customer, invoice, payment, and database migration behavior
 
 ## Tech Stack
 
@@ -110,6 +114,8 @@ The Flyway migrations currently create:
 - `merchant_users`
 - `customers`
 - `invoices`
+- `payment_attempts`
+- `audit_logs`
 
 The schema uses UUID primary keys, PostgreSQL constraints, `created_at` and `updated_at` timestamps, and indexes that support future merchant-scoped access control.
 
@@ -123,6 +129,8 @@ The first merchant-user model supports one owner now, while leaving room for fut
 - `VIEWER`
 
 Invoice money is represented as Java `BigDecimal` and PostgreSQL `NUMERIC(19,2)`. Version one stores ZAR only and rejects invoice amounts with more than two decimal places rather than silently rounding them.
+
+Payment attempts copy the invoice amount and currency. The client does not submit the payment amount, because the invoice is the source of truth for what is owed.
 
 ## API Example
 
@@ -221,6 +229,43 @@ POST /api/v1/invoices/<invoice-id>/cancel
 Authorization: Bearer <access-token>
 ```
 
+Create simulated payment attempt:
+
+```http
+POST /api/v1/payments
+Authorization: Bearer <access-token>
+Content-Type: application/json
+```
+
+```json
+{
+  "invoiceId": "<invoice-id>",
+  "paymentMethod": "PAYSHAP_SIMULATED"
+}
+```
+
+Move a payment through its status lifecycle:
+
+```http
+POST /api/v1/payments/<payment-id>/status
+Authorization: Bearer <access-token>
+Content-Type: application/json
+```
+
+```json
+{
+  "status": "PROCESSING"
+}
+```
+
+Then:
+
+```json
+{
+  "status": "SUCCEEDED"
+}
+```
+
 ## Interview Notes
 
 This project is being built milestone by milestone to show backend API design and fintech domain thinking. The first foundation proves the project can compile, run tests, expose a safe public health endpoint, and enforce protected-by-default API behavior before payment features are added.
@@ -228,3 +273,5 @@ This project is being built milestone by milestone to show backend API design an
 Milestone 2 starts the merchant identity model. Registration creates a merchant and one owner user. Login returns a JWT containing the merchant ID and merchant user ID, which is important because future financial records must be merchant-scoped.
 
 Milestone 3 adds the first merchant-owned business records. Customers and invoices are always looked up through the authenticated merchant, invoice amounts are ZAR-only, and paid invoices cannot be cancelled. This sets up the next milestone: simulated payment attempts against issued invoices.
+
+Milestone 4 introduces the difference between an invoice and a payment attempt. Creating a payment does not automatically mean the customer paid. The system only marks an invoice `PAID` after a controlled transition to `SUCCEEDED`, and it prevents more than one successful payment for the same full-payment invoice.

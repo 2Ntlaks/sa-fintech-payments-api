@@ -113,6 +113,23 @@ It proves:
 
 This matters because payments in the next milestone need a trustworthy invoice foundation before payment attempts, provider references, idempotency, webhooks, fees, balances, settlement, and reconciliation are added.
 
+## Milestone 4 Payment Attempts And Statuses
+
+The payment slice introduces controlled financial state changes.
+
+It proves:
+
+- Payment attempts are separate from invoices
+- Creating a payment attempt does not mean the invoice is paid
+- Payment amounts are copied from the invoice instead of trusted from the client
+- Simulated provider references are generated internally
+- Status transitions are centralized and tested
+- A successful payment marks the invoice `PAID`
+- The database prevents two successful full payments for one invoice
+- Payment creation and status changes create audit records
+
+This matters because fintech systems need evidence and control around every state change. The next milestone will add idempotency keys and webhook simulation so retries and provider events can be handled safely.
+
 ## Example Interview Pitch
 
 I built a simulated South African fintech merchant payments API. It supports ZAR invoices, simulated payment methods like card, EFT, PayShap, and debit order, idempotent payment creation, webhook handling, refunds, fees, merchant balances, manual settlements, reconciliation against mock provider reports, and audit logs.

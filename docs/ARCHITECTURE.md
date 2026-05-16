@@ -77,6 +77,8 @@ Invoice creation, invoice status lifecycle, invoice cancellation, and invoice pa
 
 Payment attempts, simulated payment methods, provider references, idempotency support, and controlled payment status transitions.
 
+The first payment implementation supports simulated payment attempts and controlled status updates. Idempotency-key storage is intentionally deferred to the webhook/idempotency milestone, but the schema already prevents the most dangerous version-one duplicate: two successful full payments for one invoice.
+
 ### Webhook
 
 Simulated provider event receiving, storage, validation, duplicate handling, and safe processing.
@@ -121,9 +123,11 @@ Database design should prioritize:
 
 Merchant-owned tables should either contain `merchant_id` directly or have a mandatory relationship to a parent record that contains `merchant_id`. Code should not depend on the client to tell the truth about ownership.
 
-The current schema creates `merchants`, `merchant_users`, `customers`, and `invoices`. It uses UUID primary keys and explicit merchant ownership so the database can grow toward payments, refunds, settlements, reconciliation, and audit logs without changing the tenant-isolation model.
+The current schema creates `merchants`, `merchant_users`, `customers`, `invoices`, `payment_attempts`, and `audit_logs`. It uses UUID primary keys and explicit merchant ownership so the database can grow toward refunds, settlements, reconciliation, and richer audit logs without changing the tenant-isolation model.
 
 Customer and invoice tables are merchant-scoped. Invoices reference both `merchant_id` and `customer_id`, and service methods load customers through `customer_id` plus the authenticated merchant ID before an invoice can be created.
+
+Payment attempts are also merchant-scoped. They reference invoices through invoice ID plus merchant ID so a payment cannot be linked to another merchant's invoice. A partial unique index prevents more than one `SUCCEEDED` payment attempt for the same invoice.
 
 ## Authentication Approach
 
@@ -200,6 +204,8 @@ Audit records should include:
 - Correlation or request ID when available
 
 Audit logs should be append-only in normal application behavior. They should help explain important financial and security events without storing sensitive secrets.
+
+Milestone 4 adds a minimal `audit_logs` table and service for payment creation and status changes. Milestone 10 will harden and expand audit querying, coverage, and documentation.
 
 ## Settlement Architecture
 

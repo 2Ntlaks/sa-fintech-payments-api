@@ -30,7 +30,14 @@ class DatabaseMigrationTest {
                 """,
                 String.class);
 
-        assertThat(tableNames).contains("flyway_schema_history", "merchants", "merchant_users", "customers", "invoices");
+        assertThat(tableNames).contains(
+                "flyway_schema_history",
+                "merchants",
+                "merchant_users",
+                "customers",
+                "invoices",
+                "payment_attempts",
+                "audit_logs");
     }
 
     @Test
@@ -113,5 +120,50 @@ class DatabaseMigrationTest {
                 "idx_invoices_merchant_id",
                 "idx_invoices_merchant_status");
         assertThat(invoiceConstraints).contains("fk_invoices_customer_merchant");
+    }
+
+    @Test
+    void paymentAttemptsShouldStoreSimulatedPaymentStateSafely() {
+        List<String> paymentColumns = jdbcTemplate.queryForList(
+                """
+                SELECT column_name
+                FROM information_schema.columns
+                WHERE table_schema = 'public'
+                  AND table_name = 'payment_attempts'
+                """,
+                String.class);
+
+        List<String> paymentIndexes = jdbcTemplate.queryForList(
+                """
+                SELECT indexname
+                FROM pg_indexes
+                WHERE schemaname = 'public'
+                  AND tablename = 'payment_attempts'
+                """,
+                String.class);
+
+        List<String> paymentConstraints = jdbcTemplate.queryForList(
+                """
+                SELECT constraint_name
+                FROM information_schema.table_constraints
+                WHERE table_schema = 'public'
+                  AND table_name = 'payment_attempts'
+                """,
+                String.class);
+
+        assertThat(paymentColumns).contains(
+                "merchant_id",
+                "invoice_id",
+                "amount",
+                "currency",
+                "payment_method",
+                "status",
+                "provider_reference");
+        assertThat(paymentIndexes).contains(
+                "uk_payment_attempts_provider_reference",
+                "uk_payment_attempts_invoice_success",
+                "idx_payment_attempts_merchant_id",
+                "idx_payment_attempts_merchant_status");
+        assertThat(paymentConstraints).contains("fk_payment_attempts_invoice_merchant");
     }
 }

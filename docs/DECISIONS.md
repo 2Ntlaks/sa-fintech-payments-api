@@ -383,3 +383,63 @@ Tradeoffs:
 
 - The schema has one extra composite uniqueness constraint on customers.
 - Invoice queries remain straightforward and tenant isolation becomes harder to break through future code changes.
+
+## 2026-05-16: Model Payment Attempts Separately From Invoices
+
+Decision:
+
+Create a `payment_attempts` table and payment module instead of storing payment state only on invoices. Payment attempts copy invoice amount and currency, generate simulated provider references internally, and move through controlled statuses.
+
+Reason:
+
+Real payment systems need to preserve failed attempts, provider references, status history, and retry behavior. An invoice describes what is owed; a payment attempt describes an attempt to settle that invoice.
+
+Alternatives considered:
+
+- Storing only a `paid` flag on invoices
+- Updating invoice status directly from the API without payment attempt records
+
+Tradeoffs:
+
+- More tables and service logic are required.
+- The system can now explain payment attempts, failures, provider references, and successful payment proof more realistically.
+
+## 2026-05-16: Add Minimal Audit Logging During Payment Milestone
+
+Decision:
+
+Add a simple `audit_logs` table and service in Milestone 4 for payment attempt creation and payment status changes.
+
+Reason:
+
+Payment status changes are financially meaningful. They should be traceable immediately, even though the full audit-log hardening milestone comes later.
+
+Alternatives considered:
+
+- Waiting until Milestone 10 to create audit logs
+- Logging payment status changes only to application logs
+
+Tradeoffs:
+
+- The audit model starts simple and will need expansion later.
+- Payment behavior is already explainable from persisted records instead of console logs.
+
+## 2026-05-16: Prevent Duplicate Successful Full Payments With A Partial Unique Index
+
+Decision:
+
+Use a PostgreSQL partial unique index on `payment_attempts(invoice_id)` where status is `SUCCEEDED`.
+
+Reason:
+
+Version one supports full invoice payment only. A full-payment invoice must not have more than one successful payment, even under retries or future code mistakes.
+
+Alternatives considered:
+
+- Service-only checks
+- Waiting for idempotency keys in Milestone 5
+
+Tradeoffs:
+
+- This is specific to the full-payment version-one model.
+- It provides a database-backed financial safety guarantee before the full idempotency milestone.

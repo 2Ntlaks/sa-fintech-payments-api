@@ -8,6 +8,8 @@ import za.co.safintech.payments.auth.repository.MerchantUserRepository;
 import za.co.safintech.payments.customer.repository.CustomerRepository;
 import za.co.safintech.payments.invoice.repository.InvoiceRepository;
 import za.co.safintech.payments.merchant.repository.MerchantRepository;
+import za.co.safintech.payments.payment.repository.PaymentAttemptRepository;
+import za.co.safintech.payments.audit.repository.AuditLogRepository;
 
 @SpringBootTest(properties = {
         "spring.autoconfigure.exclude=org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration,"
@@ -27,6 +29,12 @@ class SaFintechPaymentsApiApplicationTests {
 
     @MockBean
     private InvoiceRepository invoiceRepository;
+
+    @MockBean
+    private PaymentAttemptRepository paymentAttemptRepository;
+
+    @MockBean
+    private AuditLogRepository auditLogRepository;
 
     @Test
     void contextLoadsWithoutDatabaseForFoundationMilestone() {

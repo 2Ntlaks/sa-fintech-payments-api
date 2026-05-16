@@ -49,6 +49,7 @@ Examples:
 
 - Unique idempotency keys
 - Unique provider references
+- Partial unique indexes that prevent duplicate successful invoice payments
 - Merchant data isolation queries
 - Database constraints
 - Authentication-required endpoints
@@ -119,6 +120,8 @@ Examples:
 - Different idempotency key may create a new attempt if the invoice is not already paid
 - A paid invoice cannot receive another successful full payment
 - Concurrent or repeated requests cannot create duplicate successful outcomes
+
+Before full idempotency-key storage is added, Milestone 4 must still prove that only one successful payment can exist for a full-payment invoice.
 
 ## Invalid Status Transitions
 
