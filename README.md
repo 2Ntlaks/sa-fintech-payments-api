@@ -107,6 +107,8 @@ The first Flyway migration creates:
 
 The schema uses UUID primary keys, PostgreSQL constraints, `created_at` and `updated_at` timestamps, and indexes that support future merchant-scoped access control.
 
+`V2__align_merchant_currency_columns_with_jpa.sql` shows an important migration habit: once a migration has been applied, fix schema drift with a new migration rather than editing migration history.
+
 The first merchant-user model supports one owner now, while leaving room for future roles:
 
 - `OWNER`

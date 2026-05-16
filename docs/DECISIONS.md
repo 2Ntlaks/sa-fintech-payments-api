@@ -320,3 +320,24 @@ Tradeoffs:
 
 - Docker Desktop must be installed and running.
 - Local database setup becomes repeatable and closer to the future deployment model.
+
+## 2026-05-16: Preserve Applied Flyway Migrations
+
+Decision:
+
+Do not edit a Flyway migration after it has been applied to a database. Fix schema drift with a new migration instead.
+
+Reason:
+
+Flyway tracks checksums for applied migrations. Editing an applied migration causes validation failures and makes environments disagree about schema history.
+
+Alternatives considered:
+
+- Editing `V1` after it had already run locally
+- Running Flyway repair for normal schema evolution
+- Dropping the local database volume whenever a migration changes
+
+Tradeoffs:
+
+- The migration history may include small corrective migrations.
+- The project models professional database change management more accurately.
