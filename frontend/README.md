@@ -17,7 +17,7 @@ Then start the frontend:
 
 ```powershell
 cd frontend
-npm install
+npm ci
 npm run dev
 ```
 
@@ -37,6 +37,8 @@ To override it:
 $env:VITE_API_BASE_URL="http://localhost:8080"
 npm run dev
 ```
+
+The dashboard stores the demo JWT in browser `localStorage` so the local demo survives refreshes. This is not production-grade browser auth storage.
 
 ## Checks
 

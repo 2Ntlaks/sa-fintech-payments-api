@@ -63,6 +63,15 @@ Register or log in as a simulated merchant owner, create a customer, issue an in
 - Testcontainers
 - Docker Compose
 
+## Prerequisites
+
+- Java 21 or newer
+- Docker Desktop
+- Node.js 24 or newer
+- npm
+
+The Maven Wrapper is included, so Maven does not need to be installed globally.
+
 ## Run The Full App
 
 Start PostgreSQL:
@@ -81,7 +90,7 @@ In a second terminal, start the dashboard:
 
 ```powershell
 cd frontend
-npm install
+npm ci
 npm run dev
 ```
 
@@ -126,6 +135,8 @@ npm run build
 ```
 
 The database integration tests use PostgreSQL through Testcontainers. Docker Desktop must be running for the full database-backed test coverage.
+
+On macOS or Linux, use `./mvnw` instead of `.\mvnw.cmd`.
 
 ## API Documentation
 
@@ -267,6 +278,12 @@ There is also a limited health-only local profile:
 
 The `local` profile disables database-backed merchant/auth endpoints and exists only as a lightweight fallback for checking the foundation app.
 
+## Local Demo Security Defaults
+
+The default database password, JWT secret, and simulated webhook secret are local demo values only. They make the project easy to run after cloning, but they must be replaced with environment variables before any deployed or shared environment.
+
+The dashboard stores the demo JWT in browser `localStorage` for convenience. That is acceptable for this portfolio simulation, but production apps need stronger browser-session and XSS hardening.
+
 ## Safety Boundaries
 
 - No real money movement.
@@ -275,6 +292,10 @@ The `local` profile disables database-backed merchant/auth endpoints and exists 
 - No production payment credentials.
 - No sensitive tokens or passwords in audit logs.
 - Simulated provider references, webhooks, reconciliation records, and settlement batches only.
+
+## License
+
+Released under the [MIT License](LICENSE).
 
 ## Author
 

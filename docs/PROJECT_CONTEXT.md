@@ -2,7 +2,7 @@
 
 ## Project Summary
 
-`sa-fintech-payments-api` is an API-only South African fintech backend learning project. It simulates how a fintech platform could help merchants issue invoices, accept payments, process refunds, track balances, settle funds, receive webhooks, reconcile provider records, and maintain audit logs.
+`sa-fintech-payments-api` is a backend-first South African fintech learning project with a lightweight merchant dashboard. It simulates how a fintech platform could help merchants issue invoices, accept payments, process refunds, track balances, settle funds, receive webhooks, reconcile provider records, and maintain audit logs.
 
 The project is designed for learning, portfolio building, and internship interview preparation.
 

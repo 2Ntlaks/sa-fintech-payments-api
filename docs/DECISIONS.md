@@ -287,7 +287,7 @@ Use JWT access tokens for API authentication. Tokens should include the merchant
 
 Reason:
 
-The backend is API-only, and future financial records must be scoped to the authenticated merchant. Carrying both user and merchant identity in the token makes protected endpoints straightforward to authorize while still allowing future roles.
+The backend exposes protected APIs, and future financial records must be scoped to the authenticated merchant. Carrying both user and merchant identity in the token makes protected endpoints straightforward to authorize while still allowing future roles.
 
 Alternatives considered:
 
@@ -620,7 +620,7 @@ Use `springdoc-openapi-starter-webmvc-ui` to expose OpenAPI JSON and Swagger UI 
 
 Reason:
 
-The project is API-only and should be easy to inspect during learning, demos, and interviews. springdoc integrates directly with Spring Boot and can describe JWT bearer authentication in the generated OpenAPI document.
+The backend API should be easy to inspect during learning, demos, and interviews. springdoc integrates directly with Spring Boot and can describe JWT bearer authentication in the generated OpenAPI document.
 
 Alternatives considered:
 
