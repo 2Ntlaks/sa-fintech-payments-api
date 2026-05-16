@@ -38,6 +38,7 @@ Expected outputs:
 - PostgreSQL and Flyway foundation
 - First migration for merchants and merchant users
 - Testcontainers migration test
+- Docker Compose PostgreSQL setup for local full-app testing
 
 Fintech concepts:
 

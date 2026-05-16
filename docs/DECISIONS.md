@@ -299,3 +299,24 @@ Tradeoffs:
 
 - JWTs require careful secret management and expiry handling.
 - Including merchant identity gives future service methods a clear tenant context for merchant data isolation.
+
+## 2026-05-16: Use Docker Compose For Local PostgreSQL
+
+Decision:
+
+Add a `compose.yaml` file with a PostgreSQL 16 service for local development.
+
+Reason:
+
+The backend now has real database-backed merchant and authentication workflows. Docker Compose gives the learner a repeatable way to run PostgreSQL locally without manually installing and configuring PostgreSQL.
+
+Alternatives considered:
+
+- Installing PostgreSQL directly on Windows
+- Continuing with only Testcontainers
+- Using an in-memory database for local development
+
+Tradeoffs:
+
+- Docker Desktop must be installed and running.
+- Local database setup becomes repeatable and closer to the future deployment model.

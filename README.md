@@ -62,6 +62,42 @@ http://localhost:8080/api/v1/health
 
 The `local` profile intentionally disables database-backed merchant/auth endpoints. Registration and login require PostgreSQL.
 
+## Run With PostgreSQL
+
+After Docker Desktop is installed and running, start PostgreSQL:
+
+```powershell
+docker compose up -d postgres
+```
+
+Then run the API without the `local` profile:
+
+```powershell
+.\mvnw.cmd spring-boot:run
+```
+
+The app uses these default database settings:
+
+```text
+DB_URL=jdbc:postgresql://localhost:5432/sa_fintech_payments
+DB_USERNAME=sa_fintech
+DB_PASSWORD=sa_fintech
+```
+
+Flyway will create the database tables automatically when the app starts.
+
+To stop PostgreSQL:
+
+```powershell
+docker compose down
+```
+
+To remove the local database volume as well:
+
+```powershell
+docker compose down -v
+```
+
 ## Database Foundation
 
 The first Flyway migration creates:

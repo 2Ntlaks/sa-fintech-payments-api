@@ -249,3 +249,7 @@ Document error responses for fintech-relevant failures such as duplicate idempot
 Use Docker Compose for local development.
 
 Later deployment can target a Docker-friendly platform such as Render, Railway, Fly.io, or a VPS. Deployment should remain secondary until the backend is stable and tested.
+
+## Local Infrastructure
+
+Use `compose.yaml` to run PostgreSQL locally. The Compose database matches the default Spring datasource settings, so the full app can run without the temporary `local` profile once Docker Desktop is installed and running.
