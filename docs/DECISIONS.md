@@ -341,3 +341,45 @@ Tradeoffs:
 
 - The migration history may include small corrective migrations.
 - The project models professional database change management more accurately.
+
+## 2026-05-16: Store Version-One Invoice Money As BigDecimal And NUMERIC(19,2)
+
+Decision:
+
+Use Java `BigDecimal` for invoice amounts and PostgreSQL `NUMERIC(19,2)` for persisted invoice money. Version-one invoices are ZAR-only, and amounts with more than two decimal places are rejected instead of rounded.
+
+Reason:
+
+Financial amounts must be deterministic and explainable. `BigDecimal` avoids floating-point precision errors, and `NUMERIC(19,2)` matches the version-one need to store South African rand and cents clearly.
+
+Alternatives considered:
+
+- Integer cents in Java and PostgreSQL
+- PostgreSQL `MONEY`
+- Java `double` or `float`
+
+Tradeoffs:
+
+- `BigDecimal` requires deliberate scale handling and careful comparisons.
+- Integer cents may be introduced later if the project needs stricter minor-unit arithmetic.
+- Rejecting unsafe scale is stricter than silent rounding, but it protects financial records from accidental hidden changes.
+
+## 2026-05-16: Enforce Invoice Customer Ownership In The Database
+
+Decision:
+
+Invoices store `merchant_id` and `customer_id`, and the database enforces that the referenced customer belongs to the same merchant through a composite foreign key.
+
+Reason:
+
+Service-layer merchant checks are necessary, but fintech tenant isolation should also be protected by persistence constraints where practical.
+
+Alternatives considered:
+
+- Relying only on service methods such as `findByIdAndMerchantId`
+- Omitting `merchant_id` from invoices and deriving ownership only through customers
+
+Tradeoffs:
+
+- The schema has one extra composite uniqueness constraint on customers.
+- Invoice queries remain straightforward and tenant isolation becomes harder to break through future code changes.

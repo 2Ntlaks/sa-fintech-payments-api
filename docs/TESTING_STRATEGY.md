@@ -32,6 +32,7 @@ Use service tests for business workflows.
 Examples:
 
 - Creating an invoice for a merchant customer
+- Creating a customer for the authenticated merchant
 - Creating a payment attempt
 - Marking a payment as successful
 - Updating invoice state after payment success
@@ -100,6 +101,7 @@ Examples:
 
 - Merchant A cannot view Merchant B's customers
 - Merchant A cannot view Merchant B's invoices
+- Merchant A cannot create an invoice for Merchant B's customer
 - Merchant A cannot refund Merchant B's payment
 - Merchant A cannot settle Merchant B's funds
 - Merchant A cannot view Merchant B's reconciliation reports

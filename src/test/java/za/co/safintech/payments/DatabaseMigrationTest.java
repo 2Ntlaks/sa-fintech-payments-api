@@ -30,7 +30,7 @@ class DatabaseMigrationTest {
                 """,
                 String.class);
 
-        assertThat(tableNames).contains("flyway_schema_history", "merchants", "merchant_users");
+        assertThat(tableNames).contains("flyway_schema_history", "merchants", "merchant_users", "customers", "invoices");
     }
 
     @Test
@@ -76,5 +76,42 @@ class DatabaseMigrationTest {
                 "chk_merchants_default_currency",
                 "chk_merchants_type",
                 "chk_merchants_status");
+    }
+
+    @Test
+    void invoicesShouldStoreZarMoneyAndBeMerchantScoped() {
+        List<String> invoiceColumns = jdbcTemplate.queryForList(
+                """
+                SELECT column_name
+                FROM information_schema.columns
+                WHERE table_schema = 'public'
+                  AND table_name = 'invoices'
+                """,
+                String.class);
+
+        List<String> invoiceIndexes = jdbcTemplate.queryForList(
+                """
+                SELECT indexname
+                FROM pg_indexes
+                WHERE schemaname = 'public'
+                  AND tablename = 'invoices'
+                """,
+                String.class);
+
+        List<String> invoiceConstraints = jdbcTemplate.queryForList(
+                """
+                SELECT constraint_name
+                FROM information_schema.table_constraints
+                WHERE table_schema = 'public'
+                  AND table_name = 'invoices'
+                """,
+                String.class);
+
+        assertThat(invoiceColumns).contains("merchant_id", "customer_id", "amount", "currency", "status");
+        assertThat(invoiceIndexes).contains(
+                "uk_invoices_merchant_invoice_number",
+                "idx_invoices_merchant_id",
+                "idx_invoices_merchant_status");
+        assertThat(invoiceConstraints).contains("fk_invoices_customer_merchant");
     }
 }

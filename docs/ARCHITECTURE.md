@@ -121,7 +121,9 @@ Database design should prioritize:
 
 Merchant-owned tables should either contain `merchant_id` directly or have a mandatory relationship to a parent record that contains `merchant_id`. Code should not depend on the client to tell the truth about ownership.
 
-The first schema migration creates `merchants` and `merchant_users`. It uses UUID primary keys and explicit merchant ownership so the database can grow toward customers, invoices, payments, refunds, settlements, reconciliation, and audit logs without changing the tenant-isolation model.
+The current schema creates `merchants`, `merchant_users`, `customers`, and `invoices`. It uses UUID primary keys and explicit merchant ownership so the database can grow toward payments, refunds, settlements, reconciliation, and audit logs without changing the tenant-isolation model.
+
+Customer and invoice tables are merchant-scoped. Invoices reference both `merchant_id` and `customer_id`, and service methods load customers through `customer_id` plus the authenticated merchant ID before an invoice can be created.
 
 ## Authentication Approach
 
@@ -142,7 +144,7 @@ Authentication answers who the caller is. Authorization answers whether they can
 
 Never use `float` or `double` for money.
 
-Use `BigDecimal` in Java unless a clear reason is given to use integer cents. The database representation must be chosen deliberately and documented before financial persistence is implemented.
+Use `BigDecimal` in Java unless a clear reason is given to use integer cents. Invoice amounts are stored in PostgreSQL as `NUMERIC(19,2)`.
 
 Default currency is ZAR.
 
@@ -155,13 +157,13 @@ Financial calculations must be:
 
 Every amount should have currency context. Important values include gross amount, fee amount, refund amount, net amount, pending balance, available balance, and settled balance.
 
-Before implementing persistence for money, record the database decision in `docs/DECISIONS.md`. The decision should explain:
+For version-one invoices:
 
-- Whether amounts are stored as `NUMERIC` values or integer minor units
-- Scale and rounding rules
-- How ZAR currency is represented
-- How fee rounding is handled
-- How historical amounts are protected from accidental recalculation
+- Amounts must be positive.
+- Amounts may have at most two decimal places.
+- The service rejects unsafe money scale instead of silently rounding.
+- Currency is stored explicitly and constrained to `ZAR`.
+- Later payment, fee, refund, balance, settlement, and reconciliation amounts should follow the same documented money discipline unless a new decision changes it.
 
 ## Idempotency And Consistency
 

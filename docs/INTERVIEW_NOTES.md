@@ -97,6 +97,22 @@ It proves:
 
 This matters because future invoices, payments, refunds, settlements, reconciliation reports, and audit logs must all be tied back to the correct merchant.
 
+## Milestone 3 Customers And Invoices
+
+The customer and invoice slice introduces the first merchant-owned business records.
+
+It proves:
+
+- Customer data is scoped to the authenticated merchant
+- South African phone numbers use `+27` format
+- Invoices are requests for payment, not payments themselves
+- Invoice money is ZAR-only and stored with `BigDecimal` plus PostgreSQL `NUMERIC(19,2)`
+- Unsafe money scale is rejected instead of silently rounded
+- A merchant cannot create an invoice for another merchant's customer
+- Only issued invoices can be cancelled
+
+This matters because payments in the next milestone need a trustworthy invoice foundation before payment attempts, provider references, idempotency, webhooks, fees, balances, settlement, and reconciliation are added.
+
 ## Example Interview Pitch
 
 I built a simulated South African fintech merchant payments API. It supports ZAR invoices, simulated payment methods like card, EFT, PayShap, and debit order, idempotent payment creation, webhook handling, refunds, fees, merchant balances, manual settlements, reconciliation against mock provider reports, and audit logs.

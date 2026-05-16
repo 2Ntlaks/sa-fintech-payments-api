@@ -6,7 +6,7 @@ This project is a safe simulation. It must never process real money or connect t
 
 ## Current Status
 
-Milestone 1 is in progress: project foundation and domain design.
+Milestone 3 is in progress: customers and invoices.
 
 Implemented so far:
 
@@ -18,23 +18,27 @@ Implemented so far:
 - Merchant owner registration endpoint
 - Merchant owner login endpoint
 - JWT-based protected merchant profile endpoint
+- Merchant-scoped customer creation, listing, and lookup
+- Merchant-scoped invoice creation, listing, lookup, and cancellation
+- ZAR invoice amounts stored with `BigDecimal` and PostgreSQL `NUMERIC(19,2)`
 - Public health endpoint at `GET /api/v1/health`
 - Basic stateless Spring Security configuration
-- Foundation tests for health and protected endpoint behavior
+- Tests for foundation, authentication, merchant profile, customer, invoice, and database migration behavior
 
 ## Tech Stack
 
 - Java 21 target
 - Spring Boot 3.5.x
 - Maven
-- PostgreSQL later
-- Flyway later
+- PostgreSQL
+- Flyway
 - Spring Security
-- JWT later
+- JWT
 - OpenAPI / Swagger later
 - JUnit 5
 - Spring Boot Test
-- Testcontainers later
+- Testcontainers
+- Docker Compose
 
 ## Run Tests
 
@@ -100,10 +104,12 @@ docker compose down -v
 
 ## Database Foundation
 
-The first Flyway migration creates:
+The Flyway migrations currently create:
 
 - `merchants`
 - `merchant_users`
+- `customers`
+- `invoices`
 
 The schema uses UUID primary keys, PostgreSQL constraints, `created_at` and `updated_at` timestamps, and indexes that support future merchant-scoped access control.
 
@@ -115,6 +121,8 @@ The first merchant-user model supports one owner now, while leaving room for fut
 - `FINANCE`
 - `SUPPORT`
 - `VIEWER`
+
+Invoice money is represented as Java `BigDecimal` and PostgreSQL `NUMERIC(19,2)`. Version one stores ZAR only and rejects invoice amounts with more than two decimal places rather than silently rounding them.
 
 ## API Example
 
@@ -173,8 +181,50 @@ GET /api/v1/merchants/me
 Authorization: Bearer <access-token>
 ```
 
+Create customer:
+
+```http
+POST /api/v1/customers
+Authorization: Bearer <access-token>
+Content-Type: application/json
+```
+
+```json
+{
+  "fullName": "Lerato Khumalo",
+  "email": "lerato@example.com",
+  "phoneNumber": "+27821234567"
+}
+```
+
+Create invoice:
+
+```http
+POST /api/v1/invoices
+Authorization: Bearer <access-token>
+Content-Type: application/json
+```
+
+```json
+{
+  "customerId": "<customer-id>",
+  "description": "Maths tutoring lesson",
+  "amount": 250.00,
+  "dueDate": "2026-05-30"
+}
+```
+
+Cancel invoice:
+
+```http
+POST /api/v1/invoices/<invoice-id>/cancel
+Authorization: Bearer <access-token>
+```
+
 ## Interview Notes
 
 This project is being built milestone by milestone to show backend API design and fintech domain thinking. The first foundation proves the project can compile, run tests, expose a safe public health endpoint, and enforce protected-by-default API behavior before payment features are added.
 
 Milestone 2 starts the merchant identity model. Registration creates a merchant and one owner user. Login returns a JWT containing the merchant ID and merchant user ID, which is important because future financial records must be merchant-scoped.
+
+Milestone 3 adds the first merchant-owned business records. Customers and invoices are always looked up through the authenticated merchant, invoice amounts are ZAR-only, and paid invoices cannot be cancelled. This sets up the next milestone: simulated payment attempts against issued invoices.

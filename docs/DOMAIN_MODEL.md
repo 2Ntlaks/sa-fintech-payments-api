@@ -59,11 +59,15 @@ Customer records are merchant-scoped. A customer should never be shared globally
 
 South African examples should use phone numbers in `+27` format where appropriate.
 
+Version one requires a customer full name and South African `+27` phone number. Email is optional, but if present it must be unique within the same merchant.
+
 ## Invoice
 
 An invoice is a request for payment.
 
 An invoice is not a payment. It represents what the customer owes. Version one supports full invoice payment only.
+
+Version one invoices are merchant-scoped, customer-linked, ZAR-only, and created directly in the `ISSUED` state. Invoice amounts use Java `BigDecimal` and PostgreSQL `NUMERIC(19,2)`. Amounts with more than two decimal places are rejected instead of rounded.
 
 Possible invoice statuses:
 
@@ -78,6 +82,13 @@ Deferred statuses:
 
 - `DRAFT`
 - `PARTIALLY_PAID`
+
+Current version-one invoice rules:
+
+- Only an `ISSUED` invoice can be cancelled.
+- A `PAID` invoice cannot be cancelled.
+- A merchant cannot create an invoice for another merchant's customer.
+- Partial payments are deferred until later.
 
 ## Payment
 

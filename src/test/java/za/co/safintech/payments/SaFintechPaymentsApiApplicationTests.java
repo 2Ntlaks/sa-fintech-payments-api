@@ -5,6 +5,8 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.boot.test.context.SpringBootTest;
 
 import za.co.safintech.payments.auth.repository.MerchantUserRepository;
+import za.co.safintech.payments.customer.repository.CustomerRepository;
+import za.co.safintech.payments.invoice.repository.InvoiceRepository;
 import za.co.safintech.payments.merchant.repository.MerchantRepository;
 
 @SpringBootTest(properties = {
@@ -19,6 +21,12 @@ class SaFintechPaymentsApiApplicationTests {
 
     @MockBean
     private MerchantUserRepository merchantUserRepository;
+
+    @MockBean
+    private CustomerRepository customerRepository;
+
+    @MockBean
+    private InvoiceRepository invoiceRepository;
 
     @Test
     void contextLoadsWithoutDatabaseForFoundationMilestone() {
