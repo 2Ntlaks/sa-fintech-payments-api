@@ -13,6 +13,11 @@ Implemented so far:
 - Spring Boot project scaffold
 - Maven Wrapper for local builds without system Maven
 - Modular package skeleton for the planned domain modules
+- PostgreSQL and Flyway foundation
+- Initial merchant and merchant-user database migration
+- Merchant owner registration endpoint
+- Merchant owner login endpoint
+- JWT-based protected merchant profile endpoint
 - Public health endpoint at `GET /api/v1/health`
 - Basic stateless Spring Security configuration
 - Foundation tests for health and protected endpoint behavior
@@ -39,11 +44,11 @@ On Windows:
 .\mvnw.cmd test
 ```
 
-The current foundation tests do not require Docker. Database integration tests will use PostgreSQL with Testcontainers in later milestones.
+The database migration tests use PostgreSQL through Testcontainers. If Docker is not available, those tests are skipped; Docker must be running for the full database test coverage.
 
 ## Run Locally Before Docker
 
-Until PostgreSQL and Docker Compose are added, run the foundation app with the `local` profile:
+Until PostgreSQL and Docker Compose are added, run the health-only foundation app with the `local` profile:
 
 ```powershell
 .\mvnw.cmd spring-boot:run "-Dspring-boot.run.profiles=local"
@@ -54,6 +59,24 @@ Then open:
 ```text
 http://localhost:8080/api/v1/health
 ```
+
+The `local` profile intentionally disables database-backed merchant/auth endpoints. Registration and login require PostgreSQL.
+
+## Database Foundation
+
+The first Flyway migration creates:
+
+- `merchants`
+- `merchant_users`
+
+The schema uses UUID primary keys, PostgreSQL constraints, `created_at` and `updated_at` timestamps, and indexes that support future merchant-scoped access control.
+
+The first merchant-user model supports one owner now, while leaving room for future roles:
+
+- `OWNER`
+- `FINANCE`
+- `SUPPORT`
+- `VIEWER`
 
 ## API Example
 
@@ -73,6 +96,47 @@ Example response:
 }
 ```
 
+Register merchant owner:
+
+```http
+POST /api/v1/auth/register
+Content-Type: application/json
+```
+
+```json
+{
+  "businessName": "Mpho Tutoring",
+  "tradingName": "Mpho Maths",
+  "merchantType": "TUTORING_BUSINESS",
+  "ownerFullName": "Mpho Dlamini",
+  "ownerEmail": "mpho@example.com",
+  "password": "strongPass123"
+}
+```
+
+Login:
+
+```http
+POST /api/v1/auth/login
+Content-Type: application/json
+```
+
+```json
+{
+  "email": "mpho@example.com",
+  "password": "strongPass123"
+}
+```
+
+Current merchant profile:
+
+```http
+GET /api/v1/merchants/me
+Authorization: Bearer <access-token>
+```
+
 ## Interview Notes
 
 This project is being built milestone by milestone to show backend API design and fintech domain thinking. The first foundation proves the project can compile, run tests, expose a safe public health endpoint, and enforce protected-by-default API behavior before payment features are added.
+
+Milestone 2 starts the merchant identity model. Registration creates a merchant and one owner user. Login returns a JWT containing the merchant ID and merchant user ID, which is important because future financial records must be merchant-scoped.

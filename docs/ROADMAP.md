@@ -35,6 +35,9 @@ Expected outputs:
 - Public health endpoint
 - Protected-by-default security baseline
 - Foundation tests that do not require Docker
+- PostgreSQL and Flyway foundation
+- First migration for merchants and merchant users
+- Testcontainers migration test
 
 Fintech concepts:
 
@@ -54,12 +57,14 @@ Features:
 - JWT authentication
 - Protected endpoints
 - Basic merchant profile
+- JWT includes merchant and merchant-user identity for future tenant isolation
 
 Edge cases:
 
 - Invalid login
 - Unauthenticated access
 - Cross-merchant access prevention once merchant-owned records exist
+- Duplicate owner email rejected
 
 ## Milestone 3: Customers And Invoices
 

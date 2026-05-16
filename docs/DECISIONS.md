@@ -237,3 +237,65 @@ Tradeoffs:
 
 - The local profile is temporary and should not be mistaken for the real persistence setup.
 - It keeps the early learning loop smooth while preserving the planned production stack.
+
+## 2026-05-16: Use UUID Primary Keys For Domain Tables
+
+Decision:
+
+Use UUID primary keys for core domain tables, starting with `merchants` and `merchant_users`.
+
+Reason:
+
+UUIDs avoid exposing sequential database IDs in APIs, work well for future distributed or imported records, and are common in backend systems that need stable public identifiers.
+
+Alternatives considered:
+
+- Auto-incrementing integer IDs
+- Natural keys such as email or registration number
+
+Tradeoffs:
+
+- UUIDs are larger than integer IDs and can make indexes heavier.
+- They provide safer public identifiers and fit the long-term API design better.
+
+## 2026-05-16: Start Database Schema With Merchants And Merchant Users
+
+Decision:
+
+The first Flyway migration creates `merchants` and `merchant_users`.
+
+Reason:
+
+Merchant ownership is the root of the system. Starting with these tables establishes the tenant-isolation model before customers, invoices, payments, refunds, settlements, reconciliation, and audit logs are added.
+
+Alternatives considered:
+
+- Starting with payments first
+- Delaying database schema until all domain models are designed
+- Creating all planned tables immediately
+
+Tradeoffs:
+
+- The schema is incomplete until later milestones add more tables.
+- The project gets a scalable foundation without overbuilding unused financial tables too early.
+
+## 2026-05-16: Use JWTs Carrying Merchant Identity
+
+Decision:
+
+Use JWT access tokens for API authentication. Tokens should include the merchant user ID as the subject and include the merchant ID as a claim.
+
+Reason:
+
+The backend is API-only, and future financial records must be scoped to the authenticated merchant. Carrying both user and merchant identity in the token makes protected endpoints straightforward to authorize while still allowing future roles.
+
+Alternatives considered:
+
+- Session-based authentication
+- Tokens containing only the user ID
+- API keys for merchants
+
+Tradeoffs:
+
+- JWTs require careful secret management and expiry handling.
+- Including merchant identity gives future service methods a clear tenant context for merchant data isolation.

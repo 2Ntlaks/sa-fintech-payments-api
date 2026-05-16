@@ -69,6 +69,8 @@ This is important because financial systems rely on database behavior such as:
 
 Avoid relying only on in-memory database behavior for money-critical workflows.
 
+The first database foundation test should prove that Flyway creates the merchant and merchant-user tables, required ownership columns, indexes, and South African simulation constraints. These tests use Testcontainers and require Docker for full coverage; they may be skipped in environments where Docker is unavailable.
+
 ## Financial Edge Cases
 
 Tests should cover edge cases explicitly.

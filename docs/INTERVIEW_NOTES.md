@@ -82,6 +82,21 @@ It proves:
 - The package structure reflects the planned fintech modules
 - Docker and PostgreSQL can be added later without blocking early foundation tests
 
+## Milestone 2 Merchant Identity
+
+The merchant identity slice introduces the first real multi-tenant fintech boundary.
+
+It proves:
+
+- Merchant registration creates both a business record and an owner user
+- Passwords are hashed instead of stored directly
+- Duplicate owner emails are rejected
+- Login returns a JWT
+- The JWT carries merchant and merchant-user identity
+- Protected merchant endpoints require authentication
+
+This matters because future invoices, payments, refunds, settlements, reconciliation reports, and audit logs must all be tied back to the correct merchant.
+
 ## Example Interview Pitch
 
 I built a simulated South African fintech merchant payments API. It supports ZAR invoices, simulated payment methods like card, EFT, PayShap, and debit order, idempotent payment creation, webhook handling, refunds, fees, merchant balances, manual settlements, reconciliation against mock provider reports, and audit logs.

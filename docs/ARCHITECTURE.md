@@ -121,6 +121,8 @@ Database design should prioritize:
 
 Merchant-owned tables should either contain `merchant_id` directly or have a mandatory relationship to a parent record that contains `merchant_id`. Code should not depend on the client to tell the truth about ownership.
 
+The first schema migration creates `merchants` and `merchant_users`. It uses UUID primary keys and explicit merchant ownership so the database can grow toward customers, invoices, payments, refunds, settlements, reconciliation, and audit logs without changing the tenant-isolation model.
+
 ## Authentication Approach
 
 Use Spring Security with JWT for API authentication.

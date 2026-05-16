@@ -13,6 +13,44 @@ Examples:
 
 Merchants own customers, invoices, payments, refunds, balances, settlements, reconciliation reports, and audit logs.
 
+The database stores merchants with UUID primary keys, South African simulation defaults, a merchant type, and a lifecycle status. Version one can activate merchants directly, while leaving room for verification and suspension workflows later.
+
+Merchant types:
+
+- `SPAZA_SHOP`
+- `TUTORING_BUSINESS`
+- `ONLINE_COURSE_SELLER`
+- `SMALL_RETAILER`
+- `OTHER`
+
+Merchant statuses:
+
+- `PENDING_VERIFICATION`
+- `ACTIVE`
+- `SUSPENDED`
+- `CLOSED`
+
+## Merchant User
+
+A merchant user is a person who can log in for a merchant.
+
+Version one starts with one owner account, but the database supports future multi-user access.
+
+Merchant user roles:
+
+- `OWNER`
+- `FINANCE`
+- `SUPPORT`
+- `VIEWER`
+
+Merchant user statuses:
+
+- `ACTIVE`
+- `DISABLED`
+- `INVITED`
+
+Version one authentication creates an `OWNER` user during merchant registration. Login returns a JWT that identifies both the merchant user and the merchant. This identity context will later protect customers, invoices, payments, refunds, settlements, reconciliation reports, and audit logs.
+
 ## Customer
 
 A customer is a person or business that pays a merchant.

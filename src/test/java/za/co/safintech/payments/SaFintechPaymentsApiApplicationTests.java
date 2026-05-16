@@ -1,7 +1,11 @@
 package za.co.safintech.payments;
 
 import org.junit.jupiter.api.Test;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.boot.test.context.SpringBootTest;
+
+import za.co.safintech.payments.auth.repository.MerchantUserRepository;
+import za.co.safintech.payments.merchant.repository.MerchantRepository;
 
 @SpringBootTest(properties = {
         "spring.autoconfigure.exclude=org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration,"
@@ -9,6 +13,12 @@ import org.springframework.boot.test.context.SpringBootTest;
                 + "org.springframework.boot.autoconfigure.flyway.FlywayAutoConfiguration"
 })
 class SaFintechPaymentsApiApplicationTests {
+
+    @MockBean
+    private MerchantRepository merchantRepository;
+
+    @MockBean
+    private MerchantUserRepository merchantUserRepository;
 
     @Test
     void contextLoadsWithoutDatabaseForFoundationMilestone() {
