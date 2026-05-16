@@ -632,3 +632,25 @@ Tradeoffs:
 
 - The dependency adds another runtime library to keep current.
 - Generated documentation still needs curated examples and descriptions over time.
+
+## 2026-05-17: Add A Lightweight Merchant Dashboard
+
+Decision:
+
+Add a React, TypeScript, and Vite dashboard after the backend milestones are working.
+
+Reason:
+
+The project is still backend-first, but a dashboard makes the simulated payment lifecycle easier to demonstrate to recruiters, interviewers, and learners. It lets a user register a merchant, create customers and invoices, simulate payments, settle funds, reconcile mock provider records, and inspect audit logs without manually composing every API request.
+
+Alternatives considered:
+
+- Keeping the project API-only
+- Building a polished marketing site
+- Building a larger production-style admin console
+
+Tradeoffs:
+
+- The dashboard adds another build toolchain to maintain.
+- The UI is intentionally operational and lightweight so the backend domain model remains the focus.
+- The dashboard must remain a simulation surface and must not connect to real payment providers or real financial infrastructure.

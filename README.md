@@ -1,196 +1,147 @@
 # sa-fintech-payments-api
 
-A South African fintech backend learning lab for simulated merchant payments, refunds, webhooks, balances, settlements, reconciliation, and audit logs.
+`sa-fintech-payments-api` is a South African fintech backend learning lab. It simulates the merchant payment lifecycle from registration and invoicing through payment attempts, refunds, balances, settlement, reconciliation, and audit logs.
 
-This project is a safe simulation. It must never process real money or connect to real banks, card processors, PayShap services, debit order systems, or production payment providers.
+This is a safe portfolio simulation. It must never process real money or connect to real banks, card processors, PayShap services, debit order systems, or production payment providers.
 
-## Current Status
+![Merchant dashboard overview](docs/screenshots/readme/01-overview-dashboard.png)
 
-Milestone 10 is in progress: audit, security hardening, and portfolio polish.
+## What This Project Shows
 
-Implemented so far:
+- Merchant onboarding with JWT authentication and merchant-scoped access.
+- Customer and invoice management for ZAR invoices.
+- Simulated payment attempts with controlled status transitions.
+- Idempotent payment creation using merchant-scoped idempotency keys.
+- Webhook event storage, duplicate detection, and out-of-order event handling.
+- Refunds with over-refund protection and invoice/payment refund states.
+- Fee calculation, merchant balance summaries, and manual settlement batches.
+- Reconciliation against mock provider reports without mutating financial records.
+- Merchant-scoped audit logs for important financial events.
+- A React dashboard for running the demo without needing to hand-craft API calls.
 
-- Spring Boot project scaffold
-- Maven Wrapper for local builds without system Maven
-- Modular package skeleton for the planned domain modules
-- PostgreSQL and Flyway foundation
-- Initial merchant and merchant-user database migration
-- Merchant owner registration endpoint
-- Merchant owner login endpoint
-- JWT-based protected merchant profile endpoint
-- Merchant-scoped customer creation, listing, and lookup
-- Merchant-scoped invoice creation, listing, lookup, and cancellation
-- ZAR invoice amounts stored with `BigDecimal` and PostgreSQL `NUMERIC(19,2)`
-- Simulated payment attempts for issued invoices
-- Idempotency-key support for payment creation retries
-- Controlled payment status transitions
-- Invoice marked `PAID` only after a successful payment status
-- Minimal audit log records for payment creation and payment status changes
-- Simulated payment webhook endpoint with provider event deduplication
-- Webhook event storage with duplicate and out-of-order handling
-- Full and partial simulated refunds for successful payments
-- Refund records linked to original payment attempts
-- Refund limits that prevent over-refunding a payment
-- Payment and invoice refund states: `PARTIALLY_REFUNDED` and `REFUNDED`
-- Simple platform fee calculation on successful payments
-- Payment gross, fee, and net amounts stored separately
-- Merchant balance summary with gross, fee, refunded, available, and settled totals
-- Manual settlement batch creation for eligible merchant payments
-- Settlement items that preserve gross, fee, refund, and net totals
-- Duplicate settlement prevention for already-settled payments
-- Mock provider reconciliation reports
-- Reconciliation mismatch detection for missing, duplicate, amount, and status differences
-- Merchant-scoped audit log read endpoint
-- Protected-by-default API routes with focused security tests
-- Public health endpoint at `GET /api/v1/health`
-- Basic stateless Spring Security configuration
-- Tests for foundation, authentication, merchant profile, customer, invoice, payment, and database migration behavior
+## Product Walkthrough
+
+Register or log in as a simulated merchant owner, create a customer, issue an invoice, create a simulated payment, move the payment to success, settle eligible funds, reconcile mock provider data, and inspect the audit trail.
+
+![Customers and invoices](docs/screenshots/readme/02-customers-invoices.png)
+
+![Payments lifecycle](docs/screenshots/readme/03-payments.png)
+
+![Settlement batch](docs/screenshots/readme/04-settlement.png)
+
+![Reconciliation report](docs/screenshots/readme/05-reconciliation.png)
+
+![Audit logs](docs/screenshots/readme/06-audit-logs.png)
+
+## Fintech Concepts Modeled
+
+**Successful payment is not settlement.** A payment can succeed and still not be paid out to the merchant until a settlement batch is created.
+
+**Invoices and payment attempts are separate.** The invoice says what is owed. The payment attempt records the attempt to collect it, including provider reference, status, fees, and audit history.
+
+**Retries need idempotency.** A repeated payment creation request with the same idempotency key returns the original result. Reusing the key with different request details is rejected.
+
+**Webhooks are unreliable by design.** Simulated provider events can be duplicated or arrive out of order. The system stores events and makes explicit processing decisions.
+
+**Reconciliation reports exceptions.** Mock provider records are compared against internal payments. Mismatches are reported and audited, but reconciliation does not silently rewrite payment state.
+
+**Money needs deliberate rules.** Amounts use Java `BigDecimal`, PostgreSQL `NUMERIC(19,2)`, ZAR currency context, and deterministic fee rounding.
 
 ## Tech Stack
 
-- Java 21 target
+- Java 21
 - Spring Boot 3.5.x
-- Maven
-- PostgreSQL
+- Maven Wrapper
+- PostgreSQL 16
 - Flyway
 - Spring Security
 - JWT
 - OpenAPI / Swagger UI
+- React, TypeScript, and Vite
 - JUnit 5
 - Spring Boot Test
 - Testcontainers
 - Docker Compose
 
-## Run Tests
+## Run The Full App
 
-On Windows:
-
-```powershell
-.\mvnw.cmd test
-```
-
-The database migration tests use PostgreSQL through Testcontainers. If Docker is not available, those tests are skipped; Docker must be running for the full database test coverage.
-
-## Run Locally Before Docker
-
-Until PostgreSQL and Docker Compose are added, run the health-only foundation app with the `local` profile:
-
-```powershell
-.\mvnw.cmd spring-boot:run "-Dspring-boot.run.profiles=local"
-```
-
-Then open:
-
-```text
-http://localhost:8080/api/v1/health
-http://localhost:8080/swagger-ui.html
-http://localhost:8080/v3/api-docs
-```
-
-The `local` profile intentionally disables database-backed merchant/auth endpoints. Registration and login require PostgreSQL.
-
-## Run With PostgreSQL
-
-After Docker Desktop is installed and running, start PostgreSQL:
+Start PostgreSQL:
 
 ```powershell
 docker compose up -d postgres
 ```
 
-Then run the API without the `local` profile:
+Start the Spring Boot API:
 
 ```powershell
 .\mvnw.cmd spring-boot:run
 ```
 
-The app uses these default database settings:
+In a second terminal, start the dashboard:
+
+```powershell
+cd frontend
+npm install
+npm run dev
+```
+
+Open the dashboard:
 
 ```text
-DB_URL=jdbc:postgresql://localhost:5432/sa_fintech_payments
-DB_USERNAME=sa_fintech
-DB_PASSWORD=sa_fintech
+http://localhost:5173
 ```
 
-Flyway will create the database tables automatically when the app starts.
+The frontend calls `http://localhost:8080` by default. To use a different API URL, set `VITE_API_BASE_URL` before starting Vite.
 
-Swagger UI is available at `http://localhost:8080/swagger-ui.html`, and the OpenAPI JSON document is available at `http://localhost:8080/v3/api-docs`. The docs endpoints are public, while business API routes remain protected by JWT unless explicitly documented as public.
+## Demo Flow
 
-To stop PostgreSQL:
+1. Register a merchant owner from the dashboard.
+2. Create a customer.
+3. Create an invoice for that customer.
+4. Create a simulated payment for the invoice.
+5. Update the payment from `CREATED` to `PROCESSING` to `SUCCEEDED`.
+6. Check the overview balance cards.
+7. Create a settlement batch.
+8. Submit a reconciliation record that matches or intentionally mismatches a payment.
+9. Review audit logs to see the financial trail.
+
+The login/register screen is intentionally simple because the project focuses on backend fintech behavior rather than marketing pages.
+
+![Login and registration](docs/screenshots/readme/07-login.png)
+
+## Run Tests
+
+Backend tests:
 
 ```powershell
-docker compose down
+.\mvnw.cmd test
 ```
 
-To remove the local database volume as well:
+Frontend checks:
 
 ```powershell
-docker compose down -v
+cd frontend
+npm run lint
+npm run build
 ```
 
-## Database Foundation
+The database integration tests use PostgreSQL through Testcontainers. Docker Desktop must be running for the full database-backed test coverage.
 
-The Flyway migrations currently create:
+## API Documentation
 
-- `merchants`
-- `merchant_users`
-- `customers`
-- `invoices`
-- `payment_attempts`
-- `idempotency_records`
-- `webhook_events`
-- `refunds`
-- `merchant_balances`
-- `settlement_batches`
-- `settlement_batch_items`
-- `reconciliation_reports`
-- `reconciliation_report_items`
-- `audit_logs`
+With the backend running:
 
-The schema uses UUID primary keys, PostgreSQL constraints, `created_at` and `updated_at` timestamps, and indexes that support future merchant-scoped access control.
+```text
+http://localhost:8080/swagger-ui.html
+http://localhost:8080/v3/api-docs
+```
 
-`V2__align_merchant_currency_columns_with_jpa.sql` shows an important migration habit: once a migration has been applied, fix schema drift with a new migration rather than editing migration history.
-
-The first merchant-user model supports one owner now, while leaving room for future roles:
-
-- `OWNER`
-- `FINANCE`
-- `SUPPORT`
-- `VIEWER`
-
-Invoice money is represented as Java `BigDecimal` and PostgreSQL `NUMERIC(19,2)`. Version one stores ZAR only and rejects invoice amounts with more than two decimal places rather than silently rounding them.
-
-Payment attempts copy the invoice amount and currency. The client does not submit the payment amount, because the invoice is the source of truth for what is owed.
-
-Payment creation accepts an optional `Idempotency-Key` header. Reusing the same key with the same payment request returns the original payment attempt. Reusing the same key with different request details is rejected and audited.
-
-Simulated webhook events are stored by provider event ID. Duplicate provider events return an `IGNORED_DUPLICATE` decision, and out-of-order events that would move a payment backward are stored as `IGNORED_OUT_OF_ORDER`.
-
-Refunds are stored as ZAR `NUMERIC(19,2)` records linked to the original merchant-owned payment attempt. Successful refunds update both the payment and invoice refund state. A payment may have multiple partial refunds, but the total successful refund amount may never exceed the original payment amount.
-
-Successful payments calculate a simulated platform fee of `2.9% + R1.00`, rounded to two decimal places with `HALF_UP`. Payment attempts store gross, fee, and net amounts separately. Merchant balances add net amounts when payments succeed and deduct refund amounts when refunds succeed. Version one does not automatically reverse platform fees on refunds.
-
-Settlement batches preserve calculated totals at creation time. Eligible payments are merchant-owned, not already settled, and in `SUCCEEDED` or `PARTIALLY_REFUNDED` state. Fully refunded payments are excluded from settlement. Each payment can appear in only one settlement batch.
-
-Reconciliation reports compare internal merchant payment records with a submitted mock provider report. Matching uses provider reference. Mismatches are stored as report items and audited, but reconciliation does not mutate payment records.
-
-Audit logs are merchant-scoped and available to authenticated merchant users. They record structured action and state information without storing passwords, JWTs, webhook secrets, or raw sensitive payloads.
-
-## API Example
+The docs endpoints and health check are public. Business routes require a JWT unless explicitly documented otherwise.
 
 Health check:
 
 ```http
 GET /api/v1/health
-```
-
-Example response:
-
-```json
-{
-  "status": "UP",
-  "service": "sa-fintech-payments-api",
-  "timestamp": "2026-05-16T12:00:00Z"
-}
 ```
 
 Register merchant owner:
@@ -225,54 +176,7 @@ Content-Type: application/json
 }
 ```
 
-Current merchant profile:
-
-```http
-GET /api/v1/merchants/me
-Authorization: Bearer <access-token>
-```
-
-Create customer:
-
-```http
-POST /api/v1/customers
-Authorization: Bearer <access-token>
-Content-Type: application/json
-```
-
-```json
-{
-  "fullName": "Lerato Khumalo",
-  "email": "lerato@example.com",
-  "phoneNumber": "+27821234567"
-}
-```
-
-Create invoice:
-
-```http
-POST /api/v1/invoices
-Authorization: Bearer <access-token>
-Content-Type: application/json
-```
-
-```json
-{
-  "customerId": "<customer-id>",
-  "description": "Maths tutoring lesson",
-  "amount": 250.00,
-  "dueDate": "2026-05-30"
-}
-```
-
-Cancel invoice:
-
-```http
-POST /api/v1/invoices/<invoice-id>/cancel
-Authorization: Bearer <access-token>
-```
-
-Create simulated payment attempt:
+Create a simulated payment attempt:
 
 ```http
 POST /api/v1/payments
@@ -286,82 +190,6 @@ Content-Type: application/json
   "invoiceId": "<invoice-id>",
   "paymentMethod": "PAYSHAP_SIMULATED"
 }
-```
-
-Move a payment through its status lifecycle:
-
-```http
-POST /api/v1/payments/<payment-id>/status
-Authorization: Bearer <access-token>
-Content-Type: application/json
-```
-
-```json
-{
-  "status": "PROCESSING"
-}
-```
-
-Then:
-
-```json
-{
-  "status": "SUCCEEDED"
-}
-```
-
-Process a simulated provider payment webhook:
-
-```http
-POST /api/v1/webhooks/simulated/payments
-X-Simulated-Webhook-Secret: dev-only-simulated-webhook-secret
-Content-Type: application/json
-```
-
-```json
-{
-  "providerEventId": "evt-pay-001",
-  "eventType": "payment.status_changed",
-  "providerReference": "SIM-PAY-123",
-  "paymentStatus": "SUCCEEDED"
-}
-```
-
-Create a simulated refund:
-
-```http
-POST /api/v1/refunds
-Authorization: Bearer <access-token>
-Content-Type: application/json
-```
-
-```json
-{
-  "paymentId": "<payment-id>",
-  "amount": 50.00,
-  "reason": "Customer returned one item"
-}
-```
-
-View merchant balance:
-
-```http
-GET /api/v1/merchant-balance
-Authorization: Bearer <access-token>
-```
-
-Create a manual settlement batch:
-
-```http
-POST /api/v1/settlement-batches
-Authorization: Bearer <access-token>
-```
-
-List settlement batches:
-
-```http
-GET /api/v1/settlement-batches
-Authorization: Bearer <access-token>
 ```
 
 Create a reconciliation report from mock provider records:
@@ -385,38 +213,78 @@ Content-Type: application/json
 }
 ```
 
-List reconciliation reports:
+## Architecture
 
-```http
-GET /api/v1/reconciliation-reports
-Authorization: Bearer <access-token>
+The backend is a modular layered monolith. It is intentionally not a microservice system, because the learning goal is realistic fintech domain design without unnecessary distributed-system complexity.
+
+Main domains:
+
+- `auth`
+- `merchant`
+- `customer`
+- `invoice`
+- `payment`
+- `webhook`
+- `refund`
+- `balance`
+- `settlement`
+- `reconciliation`
+- `audit`
+- `common`
+
+The database schema is managed with Flyway migrations and includes merchant ownership paths for financial records. Important duplicate-prevention and isolation rules are backed by database constraints where practical.
+
+## Database Tables
+
+- `merchants`
+- `merchant_users`
+- `customers`
+- `invoices`
+- `payment_attempts`
+- `idempotency_records`
+- `webhook_events`
+- `refunds`
+- `merchant_balances`
+- `settlement_batches`
+- `settlement_batch_items`
+- `reconciliation_reports`
+- `reconciliation_report_items`
+- `audit_logs`
+
+## Local Profiles
+
+The normal app run expects PostgreSQL:
+
+```powershell
+.\mvnw.cmd spring-boot:run
 ```
 
-List audit logs:
+There is also a limited health-only local profile:
 
-```http
-GET /api/v1/audit-logs
-Authorization: Bearer <access-token>
+```powershell
+.\mvnw.cmd spring-boot:run "-Dspring-boot.run.profiles=local"
 ```
 
-## Interview Notes
+The `local` profile disables database-backed merchant/auth endpoints and exists only as a lightweight fallback for checking the foundation app.
 
-This project is being built milestone by milestone to show backend API design and fintech domain thinking. The first foundation proves the project can compile, run tests, expose a safe public health endpoint, and enforce protected-by-default API behavior before payment features are added.
+## Safety Boundaries
 
-Milestone 2 starts the merchant identity model. Registration creates a merchant and one owner user. Login returns a JWT containing the merchant ID and merchant user ID, which is important because future financial records must be merchant-scoped.
+- No real money movement.
+- No real provider integrations.
+- No real bank account processing.
+- No production payment credentials.
+- No sensitive tokens or passwords in audit logs.
+- Simulated provider references, webhooks, reconciliation records, and settlement batches only.
 
-Milestone 3 adds the first merchant-owned business records. Customers and invoices are always looked up through the authenticated merchant, invoice amounts are ZAR-only, and paid invoices cannot be cancelled. This sets up the next milestone: simulated payment attempts against issued invoices.
+## Interview Story
 
-Milestone 4 introduces the difference between an invoice and a payment attempt. Creating a payment does not automatically mean the customer paid. The system only marks an invoice `PAID` after a controlled transition to `SUCCEEDED`, and it prevents more than one successful payment for the same full-payment invoice.
+This project is built milestone by milestone to show backend engineering judgment in a fintech domain. The important story is not just "CRUD for payments"; it is how the system protects financial state through merchant isolation, deterministic money handling, controlled transitions, idempotency, webhook safety, reconciliation visibility, settlement separation, and auditability.
 
-Milestone 5 adds retry and provider-event safety. Payment creation can be retried with an idempotency key, webhook events are stored before processing decisions are returned, duplicate provider events do not reprocess financial actions, and late or backward status updates are ignored instead of mutating successful payments.
+Useful talking points:
 
-Milestone 6 adds refunds. Refunds are separate records linked to successful payments, partial refunds update payment and invoice state, full refunds move both records to `REFUNDED`, and over-refunds are rejected before any financial state changes.
-
-Milestone 7 starts the balance model. Successful payments calculate and store gross, fee, and net amounts, and merchant balances track available funds after successful payments and refunds. The first version stays intentionally simple so settlement can build on clear totals before a full ledger is introduced.
-
-Milestone 8 starts manual settlement. Settlement batches include eligible successful or partially refunded payments, preserve gross/fee/refund/net totals, prevent the same payment from being settled twice, and move the settled net amount from available balance into settled balance.
-
-Milestone 9 starts reconciliation. Mock provider reports are compared against internal payments by provider reference. The system records matched items and exceptions such as missing internal records, missing external records, amount mismatches, status mismatches, and duplicate provider references without changing payment state.
-
-Milestone 10 hardens the portfolio finish. Audit logs are queryable by the authenticated merchant, security tests prove protected routes require valid JWT merchant context, and the documentation explains the financial safeguards, limitations, and interview story.
+- Why `BigDecimal` and `NUMERIC(19,2)` are used for money.
+- Why payment attempts are separate from invoices.
+- Why payment success does not mean settlement.
+- Why reconciliation reports mismatches instead of mutating records.
+- Why database constraints matter for financial safety.
+- How the system could evolve toward a ledger, role-based access, pagination, and production-grade webhook signatures.
